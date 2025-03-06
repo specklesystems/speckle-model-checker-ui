@@ -16,7 +16,7 @@ jobs:
       - name: Deploy Firebase Functions
         uses: jsryudev/deploy-firebase-functions@v20.0.1
         env:
-          FIREBASE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}
           FIREBASE_PROJECT: speckle-model-checker
           FUNCTIONS_DIR: functions  # Update if needed
 
