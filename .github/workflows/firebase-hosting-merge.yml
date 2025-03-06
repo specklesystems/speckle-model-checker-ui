@@ -9,36 +9,18 @@ jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      # Install Firebase CLI
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools
-
-      # Setup Python for Firebase Functions
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'  # Match the Python version in Firebase Functions
-
-      # Install Dependencies for Firebase Functions
-      - name: Install Python Dependencies
-        run: |
-          cd functions
-          pip install -r requirements.txt
-
-      # Authenticate Firebase using Service Account (Application Default Credentials)
-      - name: Set up Firebase Authentication
-        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}' > $HOME/firebase-key.json
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: $HOME/firebase-key.json
+      - name: Checkout Repo
+        uses: actions/checkout@v5
 
       # Deploy Firebase Cloud Functions (Python)
       - name: Deploy Firebase Functions
+        uses: gannonk08/firebase-action-python@v0.0.1
+        with:
+          args: deploy --only functions --debug
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: $HOME/firebase-key.json
-        run: firebase deploy --only functions --project speckle-model-checker
+          CREATE_VENV: true
+          PROJECT_PATH: functions  # Ensure this is the correct directory for your Python functions
+          GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}
 
       # Deploy Firebase Hosting
       - name: Deploy Firebase Hosting
