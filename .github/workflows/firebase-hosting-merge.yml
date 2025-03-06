@@ -12,15 +12,33 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Deploy Firebase Cloud Functions (Using Service Account)
-      - name: Deploy Firebase Functions
-        uses: jsryudev/deploy-firebase-functions@v20.0.1
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}
-          FIREBASE_PROJECT: speckle-model-checker
-          FUNCTIONS_DIR: functions  # Update if needed
+      # Install Firebase CLI
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
 
-      # Deploy Firebase Hosting (Also Using Service Account)
+      # Setup Python for Firebase Functions
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'  # Match the Python version in Firebase Functions
+
+      # Install Dependencies for Firebase Functions
+      - name: Install Python Dependencies
+        run: |
+          cd functions
+          pip install -r requirements.txt
+
+      # Authenticate Firebase using Service Account
+      - name: Authenticate Firebase
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}' > $HOME/firebase-key.json
+          export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-key.json"
+
+      # Deploy Firebase Cloud Functions (Python)
+      - name: Deploy Firebase Functions
+        run: firebase deploy --only functions --project speckle-model-checker
+
+      # Deploy Firebase Hosting
       - name: Deploy Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
@@ -28,3 +46,4 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}
           channelId: live
           projectId: speckle-model-checker
+
