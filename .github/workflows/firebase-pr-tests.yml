@@ -1,5 +1,6 @@
 name: Jon defensively tests for dependencies that dont work
 
+
 on:
   pull_request:
 
@@ -8,20 +9,23 @@ permissions:
   contents: read
 
 jobs:
+  detect_changes:
+    uses: ./.github/workflows/detect_changes.yml
+
   test_dependencies:
+    needs: detect_changes
+    if: needs.detect_changes.outputs.deploy_functions == 'true'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 🐍 Setup Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      # 🔹 Setup Virtual Environment
       - name: Setup Virtual Environment
         run: |
           cd functions
@@ -29,14 +33,12 @@ jobs:
           source venv/bin/activate
           pip install --upgrade pip
 
-      # 🔥 Test Dependency Installation
       - name: Install Dependencies (Fail If Conflicts)
         run: |
           cd functions
           source venv/bin/activate
           pip install -r requirements.txt
 
-      # 🚨 Auto-Close PR If Failure (Only for Renovate)
       - name: Close Renovate PR if Dependencies Fail
         if: failure() && contains(github.actor, 'renovate')
         run: |
