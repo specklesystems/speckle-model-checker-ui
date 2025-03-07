@@ -14,15 +14,18 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # 🔥 Ensures GitHub Actions has history for git diff
 
       - name: Detect Relevant Changes
         id: check
         run: |
           echo "Checking for changes in functions/ and public/"
+          
           CHANGED_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }})
           echo "Changed Files: $CHANGED_FILES"
 
-          if echo "$CHANGED_FILES" | grep -qE '^functions/'; then
+          if echo "$CHANGED_FILES" | grep -qE 'functions/'; then
             echo "✅ Functions changed!"
             echo "functions=true" >> $GITHUB_ENV
             echo "functions=true" >> $GITHUB_OUTPUT
@@ -32,7 +35,7 @@ jobs:
             echo "functions=false" >> $GITHUB_OUTPUT
           fi
 
-          if echo "$CHANGED_FILES" | grep -qE '^public/|firebase.json'; then
+          if echo "$CHANGED_FILES" | grep -qE 'public/|firebase.json'; then
             echo "✅ Hosting changes detected!"
             echo "hosting=true" >> $GITHUB_ENV
             echo "hosting=true" >> $GITHUB_OUTPUT
@@ -41,6 +44,7 @@ jobs:
             echo "hosting=false" >> $GITHUB_ENV
             echo "hosting=false" >> $GITHUB_OUTPUT
           fi
+
 
 
 
