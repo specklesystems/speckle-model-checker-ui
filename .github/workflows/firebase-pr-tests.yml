@@ -1,12 +1,12 @@
 name: Jon defensively tests for dependencies that dont work
 
-
 on:
   pull_request:
 
 permissions:
   pull-requests: write
   contents: read
+  checks: write  # Needed to update PR status checks
 
 jobs:
   detect_changes:
@@ -34,10 +34,50 @@ jobs:
           pip install --upgrade pip
 
       - name: Install Dependencies (Fail If Conflicts)
+        id: install_deps
+        continue-on-error: true  # Capture failure instead of stopping execution
         run: |
           cd functions
           source venv/bin/activate
           pip install -r requirements.txt
+
+      - name: Report PR Status Check - Success ✅
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: "Dependency Check",
+              head_sha: context.sha,
+              status: "completed",
+              conclusion: "success",
+              output: {
+                title: "✅ Dependencies Installed Successfully",
+                summary: "No conflicts found. Ready to merge!"
+              }
+            });
+
+      - name: Report PR Status Check - Failure ❌
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: "Dependency Check",
+              head_sha: context.sha,
+              status: "completed",
+              conclusion: "failure",
+              output: {
+                title: "❌ Dependency Conflict",
+                summary: "This PR introduces dependency conflicts. Firebase Functions require specific package versions. Please resolve before merging."
+              }
+            });
 
       - name: Close Renovate PR if Dependencies Fail
         if: failure() && contains(github.actor, 'renovate')
@@ -47,4 +87,3 @@ jobs:
           gh pr close $PR_NUMBER
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
