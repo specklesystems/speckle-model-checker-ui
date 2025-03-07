@@ -1,0 +1,18 @@
+{
+  "folders": [
+    {
+      "path": "./functions",
+      "name": "functions"
+    },
+    {
+      "path": "./public",
+      "name": "components"
+    },
+    {
+      "path": ".",
+      "name": "root"
+    }
+  ],
+  "settings": {
+  }
+}
