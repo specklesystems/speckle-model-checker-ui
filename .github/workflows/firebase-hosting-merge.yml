@@ -47,6 +47,18 @@ jobs:
         run: |
           cd functions
           pip install -r requirements.txt
+
+      - name: Debug JSON and Check ADC
+        run: |
+          echo "Checking if JSON exists..."
+          ls -lah $HOME/firebase-key.json
+          echo "Checking JSON content (sanitized)..."
+          head -n 5 $HOME/firebase-key.json  # Show only the first few lines for debugging
+          echo "Checking GOOGLE_APPLICATION_CREDENTIALS..."
+          echo $GOOGLE_APPLICATION_CREDENTIALS
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: $HOME/firebase-key.json
+
           
       - name: Verify Firebase Authentication
         run: firebase projects:list --project speckle-model-checker
