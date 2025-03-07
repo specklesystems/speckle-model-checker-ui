@@ -67,7 +67,6 @@ jobs:
         continue-on-error: false  # 🔴 This ensures failure stops the job
 
       - name: Capture Dependency Error
-        id: capture_error
         if: failure()
         run: |
           echo "error_msg<<EOF" >> $GITHUB_ENV
@@ -115,5 +114,17 @@ jobs:
             });
 
       - name: Close Renovate PR if Dependencies Fail
-        if: failure
+        if: failure() && contains(github.actor, 'renovate')
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          gh pr comment $PR_NUMBER --body "⚠️ **Dependency Conflict!** This PR updates dependencies in a way that **breaks Firebase Functions**. Firebase requires specific package versions. Please adjust the Renovate config to avoid conflicts.
+
+          **Error Log:**
+          \`\`\`
+          ${{ env.error_msg }}
+          \`\`\`"
+          gh pr close $PR_NUMBER
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
