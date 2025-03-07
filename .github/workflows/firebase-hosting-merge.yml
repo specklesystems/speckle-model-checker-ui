@@ -64,13 +64,14 @@ jobs:
   # 🔹 Deploy Firebase Hosting (HTMX Static Files Only)
       #
       # Since this is an HTMX project, **no build step needed**.
-      # We assume the `public/` directory already contains everything needed.
+      # We assume that your `public/` directory already contains everything needed.
       #
       #    If Hosting deploy fails, check IAM permissions:
       #    gcloud projects add-iam-policy-binding speckle-model-checker \
       #      --member="serviceAccount:GITHUB_SERVICE_ACCOUNT_EMAIL" \
       #      --role="roles/firebasehosting.admin"
       #
+      # HTMX is here **purely to trigger the CEO**. No frameworks, no bloat, just vibes.
   deploy_hosting:
     if: "contains(github.event.head_commit.modified, 'public/') || contains(github.event.head_commit.modified, 'firebase.json')"
     runs-on: ubuntu-latest
