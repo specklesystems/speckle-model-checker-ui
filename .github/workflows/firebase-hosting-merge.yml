@@ -1,4 +1,4 @@
-name: Deploy Firebase Functions (Python)
+name: Deploy to Firebase on Merge
 
 on:
   push:
@@ -6,12 +6,42 @@ on:
       - main
 
 jobs:
-  deploy_functions:
+  deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Repo
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # 🔹 Install Firebase CLI
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      # 🔹 Setup Firebase Authentication (Because Firebase won't authenticate itself)
+      # This sets up GOOGLE_APPLICATION_CREDENTIALS using a JSON file from GitHub Secrets.
+      #
+      # WTF Google? Why is this not in the docs?
+      #    If you don’t have the right service account:
+      #    gcloud iam service-accounts list --project speckle-model-checker
+      #
+      #    If it still fails, you'll have to manually assign the "Service Account User" role:
+      #    gcloud projects add-iam-policy-binding speckle-model-checker \
+      #      --member="serviceAccount:GITHUB_SERVICE_ACCOUNT_EMAIL" \
+      #      --role="roles/iam.serviceAccountUser"
+      #
+      - name: Setup Firebase Authentication
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}' | jq '.' > $HOME/firebase-key.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/firebase-key.json" >> $GITHUB_ENV
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/firebase-key.json
+
+      # 🔹 Setup Python Virtual Environment (Because Firebase Functions would rather die than work without it)
+      # 
+      #    If it fails with "Missing virtual environment," do this manually:
+      #    cd functions && python3 -m venv venv
+      #    source venv/bin/activate && pip install -r requirements.txt
+      #
       - name: Setup Python Virtual Environment
         run: |
           cd functions
@@ -19,45 +49,32 @@ jobs:
           source venv/bin/activate
           pip install -r requirements.txt
 
-      # ✅ Install Firebase CLI BEFORE authentication
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools
-
-      # Authenticate Firebase and Fix GOOGLE_APPLICATION_CREDENTIALS Scope
-      - name: Authenticate Firebase
-        run: |
-          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}' | jq '.' > $HOME/firebase-key.json
-          echo "Setting GOOGLE_APPLICATION_CREDENTIALS..."
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/firebase-key.json" >> $GITHUB_ENV
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/firebase-key.json  # Use absolute path
-
-      # Debugging Step: Check if JSON and ADC Work
-      - name: Debug JSON and Check ADC
-        run: |
-          echo "Checking if JSON exists..."
-          ls -lah $HOME/firebase-key.json
-          echo "Checking JSON content (sanitized)..."
-          head -n 5 $HOME/firebase-key.json  # Show first few lines for debugging
-          echo "Checking GOOGLE_APPLICATION_CREDENTIALS..."
-          echo $GOOGLE_APPLICATION_CREDENTIALS
-
-      # ✅ Move Firebase Authentication Check AFTER CLI installation
-      - name: Verify Firebase Authentication
-        run: firebase projects:list --project speckle-model-checker
-
-      # Setup Python for Firebase Functions
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'  # Match your Firebase Functions Python version
-
-      # Install Dependencies for Firebase Functions
-      - name: Install Python Dependencies
-        run: |
-          cd functions
-          pip install -r requirements.txt
-
-      # Deploy Firebase Cloud Functions (Python)
+      # 🔹 Deploy Firebase Functions (Because why would this be easy?)
+      #
+      #    If you see permission errors, it’s because Google wants you to manually assign roles:
+      #    gcloud projects add-iam-policy-binding speckle-model-checker \
+      #      --member="serviceAccount:GITHUB_SERVICE_ACCOUNT_EMAIL" \
+      #      --role="roles/cloudfunctions.admin"
+      #
       - name: Deploy Firebase Functions
-        run: firebase deploy --only functions --project speckle-model-checker --debug
+        run: firebase deploy --only functions --project speckle-model-checker
+
+      # 🔹 Install Dependencies & Build for Firebase Hosting (Because static sites are apparently rocket science)
+      #
+      - name: Install Frontend Dependencies & Build
+        run: npm ci && npm run build
+
+      # 🔹 Deploy to Firebase Hosting (Because this should have just been a single damn button)
+      #
+      #    If it fails, guess what? More manual permission fixes:
+      #    gcloud projects add-iam-policy-binding speckle-model-checker \
+      #      --member="serviceAccount:GITHUB_SERVICE_ACCOUNT_EMAIL" \
+      #      --role="roles/firebasehosting.admin"
+      #
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}
+          channelId: live
+          projectId: speckle-model-checker
