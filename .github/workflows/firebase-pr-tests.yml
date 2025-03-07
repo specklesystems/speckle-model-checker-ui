@@ -59,14 +59,14 @@ jobs:
 
       - name: Install Dependencies (Fail If Conflicts)
         id: install_deps
-        continue-on-error: true  # Capture failure instead of stopping execution
+        continue-on-error: true  # Step can fail, but job will continue
         run: |
           cd functions
           source venv/bin/activate
           pip install -r requirements.txt
 
       - name: Report PR Status Check - Success ✅
-        if: success()
+        if: steps.install_deps.outcome == 'success'  # ✅ Only mark success if dependencies install correctly
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -85,7 +85,7 @@ jobs:
             });
 
       - name: Report PR Status Check - Failure ❌
-        if: failure()
+        if: steps.install_deps.outcome == 'failure'  # ✅ Only mark failure if dependencies fail to install
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -104,10 +104,11 @@ jobs:
             });
 
       - name: Close Renovate PR if Dependencies Fail
-        if: failure() && contains(github.actor, 'renovate')
+        if: steps.install_deps.outcome == 'failure' && contains(github.actor, 'renovate')  # ✅ Only run if dependencies fail
         run: |
           PR_NUMBER=${{ github.event.pull_request.number }}
           gh pr comment $PR_NUMBER --body "⚠️ **Dependency Conflict!** This PR updates dependencies in a way that **breaks Firebase Functions**. Firebase requires specific package versions. Please adjust the Renovate config to avoid conflicts."
           gh pr close $PR_NUMBER
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
