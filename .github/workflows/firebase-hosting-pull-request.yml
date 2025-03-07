@@ -1,7 +1,9 @@
-# Deploy to Firebase Hosting on PR (Preview Only)
+name: Preview Firebase Hosting OR Test Firebase Functions on PR
 
-name: Deploy to Firebase Hosting on PR
-on: pull_request
+on:
+  pull_request:
+    branches:
+      - main
 
 permissions:
   checks: write
@@ -9,13 +11,29 @@ permissions:
   pull-requests: write
 
 jobs:
-  build_and_preview:
-    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+  # 🔹 Deploy Firebase Hosting Preview (Only If Public/Frontend Changes)
+  deploy_hosting:
+    if: "contains(github.event.pull_request.changed_files, 'public/') || contains(github.event.pull_request.changed_files, 'firebase.json')"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      # 🔹 Install Firebase CLI
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      # 🔹 Setup Firebase Authentication
+      - name: Setup Firebase Authentication
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}' | jq '.' > $HOME/firebase-key.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/firebase-key.json" >> $GITHUB_ENV
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/firebase-key.json
+
+      # 🔹 Deploy to Firebase Hosting (Preview Only)
+      - name: Deploy to Firebase Hosting (Preview)
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}
