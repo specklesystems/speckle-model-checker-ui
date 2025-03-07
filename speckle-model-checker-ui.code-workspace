@@ -6,7 +6,7 @@
     },
     {
       "path": "./public",
-      "name": "components"
+      "name": "public"
     },
     {
       "path": ".",
