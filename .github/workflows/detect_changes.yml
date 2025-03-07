@@ -17,12 +17,18 @@ jobs:
       deploy_functions: ${{ steps.check_changes.outputs.deploy_functions }}
       deploy_hosting: ${{ steps.check_changes.outputs.deploy_hosting }}
     steps:
-      - name: Checkout Repository
+      - name: Checkout Repository (Ensure Main Exists)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Ensures at least the latest commit from main
 
       - name: Detect Changes
         id: check_changes
         run: |
+          # Ensure we have the latest main branch
+          git fetch origin main --depth=1
+
+          # Get changed files
           CHANGED_FILES=$(git diff --name-only origin/main ${{ github.sha }})
           echo "Changed files: $CHANGED_FILES"
 
