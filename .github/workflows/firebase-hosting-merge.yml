@@ -12,25 +12,28 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      # Set up Firebase Authentication (Application Default Credentials)
+      # Authenticate Firebase and Fix GOOGLE_APPLICATION_CREDENTIALS Scope
       - name: Authenticate Firebase
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}' | jq '.' > $HOME/firebase-key.json
+          echo "Setting GOOGLE_APPLICATION_CREDENTIALS..."
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/firebase-key.json" >> $GITHUB_ENV
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: $HOME/firebase-key.json
+          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/firebase-key.json  # Use absolute path
 
-
-      - name: Debug Service Account JSON
+      # Debugging Step: Check if JSON and ADC Work
+      - name: Debug JSON and Check ADC
         run: |
-          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}' | jq '.' > $HOME/firebase-key.json
-          if [ -s "$HOME/firebase-key.json" ]; then
-            echo "Service account JSON is set and written correctly."
-          else
-            echo "ERROR: Service account JSON is EMPTY!"
-            exit 1
-          fi
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: $HOME/firebase-key.json
+          echo "Checking if JSON exists..."
+          ls -lah $HOME/firebase-key.json
+          echo "Checking JSON content (sanitized)..."
+          head -n 5 $HOME/firebase-key.json  # Show first few lines for debugging
+          echo "Checking GOOGLE_APPLICATION_CREDENTIALS..."
+          echo $GOOGLE_APPLICATION_CREDENTIALS
+
+      # Verify Firebase Authentication
+      - name: Verify Firebase Authentication
+        run: firebase projects:list --project speckle-model-checker
 
       # Install Firebase CLI
       - name: Install Firebase CLI
@@ -40,7 +43,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'  # Match the Python version in Firebase Functions
+          python-version: '3.10'  # Match your Firebase Functions Python version
 
       # Install Dependencies for Firebase Functions
       - name: Install Python Dependencies
@@ -48,27 +51,6 @@ jobs:
           cd functions
           pip install -r requirements.txt
 
-      - name: Debug JSON and Check ADC
-        run: |
-          echo "Checking if JSON exists..."
-          ls -lah $HOME/firebase-key.json
-          echo "Checking JSON content (sanitized)..."
-          head -n 5 $HOME/firebase-key.json  # Show only the first few lines for debugging
-          echo "Checking GOOGLE_APPLICATION_CREDENTIALS..."
-          echo $GOOGLE_APPLICATION_CREDENTIALS
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: $HOME/firebase-key.json
-
-          
-      - name: Verify Firebase Authentication
-        run: firebase projects:list --project speckle-model-checker
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: $HOME/firebase-key.json
-
-
       # Deploy Firebase Cloud Functions (Python)
       - name: Deploy Firebase Functions
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: $HOME/firebase-key.json
         run: firebase deploy --only functions --project speckle-model-checker --debug
-
