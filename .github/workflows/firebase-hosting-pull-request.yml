@@ -5,25 +5,25 @@ on:
     branches:
       - main
 
-permissions:
-  checks: write
-  contents: read
-  pull-requests: write
+
 
 jobs:
+  
+  detect_changes:
+    uses: ./.github/workflows/detect_changes.yml  # Reuse detect_changes workflow
+  
   # 🔹 Deploy Firebase Hosting Preview (Only If Public/Frontend Changes)
   deploy_hosting:
-    if: "contains(github.event.pull_request.changed_files, 'public/') || contains(github.event.pull_request.changed_files, 'firebase.json')"
+    needs: detect_changes
+    if: needs.detect_changes.outputs.deploy_hosting == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 🔹 Install Firebase CLI
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
 
-      # 🔹 Setup Firebase Authentication
       - name: Setup Firebase Authentication
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}' | jq '.' > $HOME/firebase-key.json
@@ -31,10 +31,10 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: /home/runner/firebase-key.json
 
-      # 🔹 Deploy to Firebase Hosting (Preview Only)
-      - name: Deploy to Firebase Hosting (Preview)
+      - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}
+          channelId: live
           projectId: speckle-model-checker
