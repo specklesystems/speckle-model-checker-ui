@@ -12,6 +12,10 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
+      # ✅ Install Firebase CLI BEFORE authentication
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
       # Authenticate Firebase and Fix GOOGLE_APPLICATION_CREDENTIALS Scope
       - name: Authenticate Firebase
         run: |
@@ -31,13 +35,9 @@ jobs:
           echo "Checking GOOGLE_APPLICATION_CREDENTIALS..."
           echo $GOOGLE_APPLICATION_CREDENTIALS
 
-      # Verify Firebase Authentication
+      # ✅ Move Firebase Authentication Check AFTER CLI installation
       - name: Verify Firebase Authentication
         run: firebase projects:list --project speckle-model-checker
-
-      # Install Firebase CLI
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools
 
       # Setup Python for Firebase Functions
       - name: Setup Python
