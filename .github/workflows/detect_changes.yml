@@ -20,12 +20,14 @@ jobs:
       - name: Checkout Repository (Ensure Full History)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch full history to ensure diff works
+          fetch-depth: 0  # Ensure we get full commit history
 
-      - name: Fetch Main Branch
+      - name: Fetch Latest Main Branch
         run: |
           git fetch origin main --depth=1
-          git branch --track main origin/main || true
+          git checkout main || git checkout -b main origin/main  # Ensure main exists
+          git pull origin main  # Pull latest changes
+          echo "Main branch updated!"
 
       - name: Determine Base Commit
         id: determine_base
@@ -50,7 +52,7 @@ jobs:
           echo "$CHANGED_FILES"
           echo "========================="
 
-          # Detect Functions changes (Fixing nested path detection)
+          # Detect Functions changes
           if echo "$CHANGED_FILES" | grep -E '^functions/' > /dev/null; then
             echo "Deploying Functions!"
             echo "deploy_functions=true" >> "$GITHUB_ENV"
