@@ -22,36 +22,30 @@ jobs:
         with:
           fetch-depth: 0  # Ensure we get full commit history
 
-      - name: Fetch Latest Main Branch
+      - name: Fetch and Compare Changes
         run: |
+          # Fetch the latest main branch and ensure it's up to date
           git fetch origin main --depth=1
-          git checkout main || git checkout -b main origin/main  # Ensure main exists
-          git pull origin main  # Pull latest changes
-          echo "Main branch updated!"
-
-      - name: Determine Base Commit
-        id: determine_base
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            BASE_SHA=$(git merge-base origin/main HEAD)
-          else
-            BASE_SHA="origin/main"
-          fi
+          git checkout -B main origin/main
+          git reset --soft origin/main
+      
+          # Ensure we get the actual SHA instead of a branch reference
+          BASE_SHA=$(git rev-parse origin/main)
           echo "BASE_SHA=$BASE_SHA" >> "$GITHUB_ENV"
           echo "Comparing against: $BASE_SHA"
-
-      - name: Detect Changes
-        id: check_changes
-        run: |
-          # Get changed files
+      
+          # Debugging - See if changes exist
+          echo "===== DEBUG: GIT STATUS ====="
+          git status
+          echo "===== DEBUG: GIT LOG ====="
+          git log --oneline -5
+          echo "===== DEBUG: GIT DIFF ====="
+          git diff --name-status $BASE_SHA..HEAD
+      
+          # Detect Changes
           CHANGED_FILES=$(git diff --name-only $BASE_SHA HEAD)
           echo "Changed files: $CHANGED_FILES"
-
-          # Debug: Ensure we list all changes
-          echo "===== CHANGED FILES ====="
-          echo "$CHANGED_FILES"
-          echo "========================="
-
+      
           # Detect Functions changes
           if echo "$CHANGED_FILES" | grep -E '^functions/' > /dev/null; then
             echo "Deploying Functions!"
@@ -62,7 +56,7 @@ jobs:
             echo "deploy_functions=false" >> "$GITHUB_ENV"
             echo "deploy_functions=false" >> "$GITHUB_OUTPUT"
           fi
-
+      
           # Detect Hosting (public/) changes
           if echo "$CHANGED_FILES" | grep -E '^public/|^firebase.json' > /dev/null; then
             echo "Deploying Hosting!"
@@ -73,3 +67,4 @@ jobs:
             echo "deploy_hosting=false" >> "$GITHUB_ENV"
             echo "deploy_hosting=false" >> "$GITHUB_OUTPUT"
           fi
+
