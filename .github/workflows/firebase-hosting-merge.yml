@@ -14,9 +14,11 @@ jobs:
 
       # Set up Firebase Authentication (Application Default Credentials)
       - name: Authenticate Firebase
-        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}' > $HOME/firebase-key.json
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}' | jq '.' > $HOME/firebase-key.json
         env:
           GOOGLE_APPLICATION_CREDENTIALS: $HOME/firebase-key.json
+
 
       - name: Debug Service Account JSON
         run: |
@@ -45,9 +47,16 @@ jobs:
         run: |
           cd functions
           pip install -r requirements.txt
+          
+      - name: Verify Firebase Authentication
+        run: firebase projects:list --project speckle-model-checker
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: $HOME/firebase-key.json
+
 
       # Deploy Firebase Cloud Functions (Python)
       - name: Deploy Firebase Functions
         env:
           GOOGLE_APPLICATION_CREDENTIALS: $HOME/firebase-key.json
-        run: firebase deploy --only functions --project speckle-model-checker
+        run: firebase deploy --only functions --project speckle-model-checker --debug
+
