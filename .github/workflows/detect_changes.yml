@@ -4,74 +4,31 @@ on:
   workflow_call:
     outputs:
       deploy_functions:
-        description: "Should deploy functions?"
-        value: ${{ jobs.detect.outputs.deploy_functions }}
+        description: "Detects if Firebase Functions should be deployed"
+        value: ${{ jobs.detect_changes.outputs.deploy_functions }}
       deploy_hosting:
-        description: "Should deploy hosting?"
-        value: ${{ jobs.detect.outputs.deploy_hosting }}
+        description: "Detects if Firebase Hosting should be deployed"
+        value: ${{ jobs.detect_changes.outputs.deploy_hosting }}
 
 jobs:
-  detect:
+  detect_changes:
     runs-on: ubuntu-latest
     outputs:
-      deploy_functions: ${{ steps.check_changes.outputs.deploy_functions }}
-      deploy_hosting: ${{ steps.check_changes.outputs.deploy_hosting }}
+      deploy_functions: ${{ steps.filter.outputs.functions }}
+      deploy_hosting: ${{ steps.filter.outputs.hosting }}
     steps:
-      - name: Checkout Repository (Ensure Full History)
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Ensure we get full commit history
+          fetch-depth: 0  # Ensure full history for proper diff detection
 
-      - name: Fetch and Compare Changes
-        run: |
-          # Ensure we have full history (especially for direct commits)
-          git fetch --prune --unshallow
-      
-          # If this is a direct push to main, compare against the previous commit
-          if [ "$GITHUB_REF_NAME" = "main" ]; then
-            BASE_SHA=$(git rev-parse HEAD~1)
-            echo "🚀 Direct push detected! Comparing against previous commit: $BASE_SHA"
-          else
-            # If working in a PR, compare against origin/main
-            git checkout main
-            git pull origin main
-            BASE_SHA=$(git rev-parse origin/main)
-            echo "📌 PR detected! Comparing against: $BASE_SHA"
-          fi
-      
-          echo "BASE_SHA=$BASE_SHA" >> "$GITHUB_ENV"
-          
-          # Debugging: Show Git Status and Logs
-          echo "===== DEBUG: GIT STATUS ====="
-          git status
-          echo "===== DEBUG: GIT LOG ====="
-          git log --oneline -5
-          echo "===== DEBUG: GIT DIFF ====="
-          git diff --name-status $BASE_SHA..HEAD
-          
-          # Get changed files
-          CHANGED_FILES=$(git diff --name-only $BASE_SHA HEAD)
-          echo "Changed files: $CHANGED_FILES"
-      
-          # Detect Functions changes
-          if echo "$CHANGED_FILES" | grep -E '^functions/' > /dev/null; then
-            echo "🚀 Deploying Functions!"
-            echo "deploy_functions=true" >> "$GITHUB_ENV"
-            echo "deploy_functions=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "No function changes detected."
-            echo "deploy_functions=false" >> "$GITHUB_ENV"
-            echo "deploy_functions=false" >> "$GITHUB_OUTPUT"
-          fi
-      
-          # Detect Hosting (public/) changes
-          if echo "$CHANGED_FILES" | grep -E '^public/|^firebase.json' > /dev/null; then
-            echo "🚀 Deploying Hosting!"
-            echo "deploy_hosting=true" >> "$GITHUB_ENV"
-            echo "deploy_hosting=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "No hosting changes detected."
-            echo "deploy_hosting=false" >> "$GITHUB_ENV"
-            echo "deploy_hosting=false" >> "$GITHUB_OUTPUT"
-          fi
-
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            functions:
+              - 'functions/**'
+            hosting:
+              - 'public/**'
+              - 'firebase.json'
