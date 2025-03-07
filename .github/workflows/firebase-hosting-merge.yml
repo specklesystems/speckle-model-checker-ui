@@ -20,7 +20,7 @@ jobs:
       # 🔹 Setup Firebase Authentication (Because Firebase won't authenticate itself)
       # This sets up GOOGLE_APPLICATION_CREDENTIALS using a JSON file from GitHub Secrets.
       #
-      # WTF Google? Why is this not in the docs?
+      #    WTF Google? Why is this not in the docs?
       #    If you don’t have the right service account:
       #    gcloud iam service-accounts list --project speckle-model-checker
       #
@@ -59,14 +59,12 @@ jobs:
       - name: Deploy Firebase Functions
         run: firebase deploy --only functions --project speckle-model-checker
 
-      # 🔹 Install Dependencies & Build for Firebase Hosting (Because static sites are apparently rocket science)
+      # 🔹 Deploy Firebase Hosting (HTMX Static Files Only)
       #
-      - name: Install Frontend Dependencies & Build
-        run: npm ci && npm run build
-
-      # 🔹 Deploy to Firebase Hosting (Because this should have just been a single damn button)
+      # Since this is an HTMX project, **no build step needed**.
+      # We assume that your `public/` directory already contains everything needed.
       #
-      #    If it fails, guess what? More manual permission fixes:
+      #    If Hosting deploy fails, check IAM permissions:
       #    gcloud projects add-iam-policy-binding speckle-model-checker \
       #      --member="serviceAccount:GITHUB_SERVICE_ACCOUNT_EMAIL" \
       #      --role="roles/firebasehosting.admin"
