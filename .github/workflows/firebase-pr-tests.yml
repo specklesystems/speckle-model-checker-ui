@@ -35,6 +35,9 @@ jobs:
       - name: Test Firebase Functions (No Deploy)
         run: firebase emulators:exec --only functions 'python -m unittest discover -s tests'
 
+      - name: Debug GitHub Actor
+        run: echo "GitHub Actor is ${{ github.actor }}"
+
       # 🔹 If Tests Fail, Add PR Comment + Label (For Renovate/Dependabot)
       - name: Flag PR as Invalid if Tests Fail
         if: failure() && (github.actor == 'renovate[bot]' || github.actor == 'dependabot[bot]')
@@ -43,3 +46,12 @@ jobs:
           gh pr edit ${{ github.event.pull_request.number }} --add-label "invalid update"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Auto-Close PR if Tests Fail (Only for Bots)
+        if: failure() && (github.actor == 'renovate[bot]' || github.actor == 'dependabot[bot]')
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ This PR has been automatically closed because the dependency update **breaks Firebase functions**. Firebase requires a specific version of \`cloudevents\`. Please update Renovate/Dependabot configuration to prevent this."
+          gh pr close ${{ github.event.pull_request.number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
