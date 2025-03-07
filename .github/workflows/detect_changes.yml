@@ -39,7 +39,10 @@ jobs:
               - 'firebase.json'
 
       - name: Debug context SHA
-        run: echo "SHA: ${{ github.sha }}"
+        shell: bash
+        run: echo "SHA=${{ github.sha }}"
+
+
         
       - name: Mark Success If No Deployment Needed ✅
         if: steps.filter.outputs.functions == 'false' && steps.filter.outputs.hosting == 'false'
