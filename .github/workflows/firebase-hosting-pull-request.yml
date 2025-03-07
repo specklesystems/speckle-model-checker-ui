@@ -1,4 +1,4 @@
-name: Preview Firebase Hosting OR Test Firebase Functions on PR
+name: Preview Firebase Hosting on PR
 
 on:
   pull_request:
@@ -11,9 +11,13 @@ permissions:
   pull-requests: write
 
 jobs:
+  detect_changes:
+    uses: ./.github/workflows/detect_changes.yml  # Calls the detect_changes workflow
+
   # 🔹 Deploy Firebase Hosting Preview (Only If Public/Frontend Changes)
   deploy_hosting:
-    if: "contains(github.event.pull_request.changed_files, 'public/') || contains(github.event.pull_request.changed_files, 'firebase.json')"
+    needs: detect_changes
+    if: needs.detect_changes.outputs.deploy_hosting == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -33,8 +37,31 @@ jobs:
 
       # 🔹 Deploy to Firebase Hosting (Preview Only)
       - name: Deploy to Firebase Hosting (Preview)
+        id: deploy
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}
           projectId: speckle-model-checker
+
+      # ✅ Report Success If Deployment Succeeds
+      - name: Mark Success If Hosting Deployment Succeeds ✅
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const response = await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: "Preview Firebase Hosting",
+              head_sha: context.sha,
+              status: "completed",
+              conclusion: "success",
+              output: {
+                title: "✅ Firebase Hosting Preview Deployed",
+                summary: "The Firebase Hosting preview has been successfully deployed for this PR."
+              }
+            });
+      
+            console.log(response);
