@@ -1,89 +1,313 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
-
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/11.4.0/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/11.4.0/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/11.4.0/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/11.4.0/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/11.4.0/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/11.4.0/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/11.4.0/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/11.4.0/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/11.4.0/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/11.4.0/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
-
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
-      }
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speckle Checker - Rule Editor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.10/htmx.min.js" integrity="sha512-9qYO0x6TCpQVF1+iRQZpAt1CJQQgXKPCJyFdNrHcqT5CvGKGchPJPe3XUTa/5ktYzaQ/3xLA1+87Xx6V3X+qJQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js" integrity="sha512-wnea99uKIC3TJF7v4eKk4Y+lMz2Mklv18+r4na2Gn1abDRPPOeef95xTzdwGD9e6zXJBteMIhZ1+68QC5byJZw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-functions-compat.js"></script>
+    <style>
+        .htmx-indicator {
+            opacity: 0;
+            transition: opacity 200ms ease-in;
+        }
+        .htmx-request .htmx-indicator {
+            opacity: 1;
+        }
     </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-blue-600 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center">
+                <h1 class="text-xl font-bold">Speckle Checker</h1>
+                <span class="ml-2 px-2 py-1 bg-blue-500 text-xs rounded">Rule Editor</span>
+            </div>
+            <div class="flex items-center" id="auth-container">
+                <!-- Auth UI will be rendered here -->
+                <div class="htmx-indicator">
+                    <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                <button 
+                    id="login-button"
+                    class="px-4 py-2 bg-white text-blue-700 rounded hover:bg-gray-100"
+                    onclick="signInWithGoogle()"
+                >
+                    Sign In with Google
+                </button>
+                <div id="user-profile" class="hidden">
+                    <span id="user-name" class="mr-2"></span>
+                    <button 
+                        class="px-3 py-1 bg-blue-700 text-white rounded hover:bg-blue-800"
+                        onclick="signOut()"
+                    >
+                        Sign Out
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4">
+        <div id="main-content">
+            <!-- This will be populated based on auth state -->
+            <div class="flex items-center justify-center h-64">
+                <div class="text-center">
+                    <svg class="animate-spin h-10 w-10 mx-auto text-blue-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <p class="text-gray-600">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Templates -->
+    <template id="ruleset-list-template">
+        <div class="mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">Your Rule Sets</h2>
+                <button
+                    class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
+                    hx-get="/api/rule-sets/new"
+                    hx-target="#main-content"
+                    hx-trigger="click"
+                    hx-indicator=".htmx-indicator"
+                >
+                    <span class="htmx-indicator mr-2">
+                        <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </span>
+                    Create New Rule Set
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="ruleset-container">
+                <!-- Rule sets will be inserted here -->
+            </div>
+        </div>
+    </template>
+
+    <template id="ruleset-card-template">
+        <div class="bg-white rounded-lg shadow p-4 border border-gray-200">
+            <div class="flex justify-between items-start mb-3">
+                <h3 class="text-lg font-semibold text-gray-800">{name}</h3>
+                <div class="flex space-x-1">
+                    <button
+                        class="p-1 text-gray-500 hover:text-gray-700"
+                        hx-get="/api/rule-sets/{id}/edit"
+                        hx-target="#main-content"
+                        hx-trigger="click"
+                        title="Edit Rule Set"
+                    >
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </button>
+                    <button
+                        class="p-1 text-gray-500 hover:text-red-700"
+                        hx-delete="/api/rule-sets/{id}"
+                        hx-confirm="Are you sure you want to delete this rule set?"
+                        hx-target="#ruleset-card-{id}"
+                        hx-swap="outerHTML"
+                        title="Delete Rule Set"
+                    >
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            <line x1="10" y1="11" x2="10" y2="17"></line>
+                            <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="text-sm text-gray-600 mb-3">
+                <p>Last updated: {updated_at}</p>
+                <p>{rule_count} rules</p>
+            </div>
+            <div class="flex space-x-2">
+                <button
+                    class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                    hx-get="/api/rule-sets/{id}/edit"
+                    hx-target="#main-content"
+                >
+                    Edit Rules
+                </button>
+                <button
+                    class="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700"
+                    hx-get="/api/rule-sets/{id}/share"
+                    hx-target="#share-dialog-container"
+                    hx-trigger="click"
+                >
+                    Share
+                </button>
+                <button
+                    class="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700"
+                    hx-get="/api/rule-sets/{id}/export"
+                    hx-trigger="click"
+                >
+                    Export
+                </button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Share dialog container -->
+    <div id="share-dialog-container" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <!-- Dialog content will be loaded here -->
     </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
 
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
 
-        try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const functions = firebase.functions();
+
+        // Auth state changes
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // User is signed in
+                document.getElementById('login-button').classList.add('hidden');
+                document.getElementById('user-profile').classList.remove('hidden');
+                document.getElementById('user-name').textContent = user.displayName;
+                
+                // Load rule sets
+                loadRuleSets(user.uid);
+            } else {
+                // User is signed out
+                document.getElementById('login-button').classList.remove('hidden');
+                document.getElementById('user-profile').classList.add('hidden');
+                document.getElementById('user-name').textContent = '';
+                
+                // Show login prompt
+                document.getElementById('main-content').innerHTML = `
+                    <div class="text-center py-16">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Welcome to Speckle Checker Rule Editor</h2>
+                        <p class="text-gray-600 mb-6">Sign in to manage your rule sets for Speckle Automate</p>
+                        <button 
+                            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md"
+                            onclick="signInWithGoogle()"
+                        >
+                            Sign In with Google
+                        </button>
+                    </div>
+                `;
+            }
+        });
+
+        // Sign in with Google
+        function signInWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch(error => {
+                console.error("Error signing in with Google:", error);
+                alert("Failed to sign in: " + error.message);
+            });
         }
-      });
+
+        // Sign out
+        function signOut() {
+            auth.signOut().catch(error => {
+                console.error("Error signing out:", error);
+            });
+        }
+
+        // Load rule sets
+        function loadRuleSets(userId) {
+            // Get template
+            const template = document.getElementById('ruleset-list-template').innerHTML;
+            document.getElementById('main-content').innerHTML = template;
+            
+            // Fetch rule sets from Firestore
+            db.collection('ruleSets')
+                .where('userId', '==', userId)
+                .orderBy('updatedAt', 'desc')
+                .get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        // No rule sets found
+                        document.getElementById('ruleset-container').innerHTML = `
+                            <div class="col-span-3 text-center py-10 bg-white rounded-lg border border-gray-200">
+                                <p class="text-gray-600 mb-4">You don't have any rule sets yet.</p>
+                                <button
+                                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                    hx-get="/api/rule-sets/new"
+                                    hx-target="#main-content"
+                                >
+                                    Create Your First Rule Set
+                                </button>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    // Render rule sets
+                    const container = document.getElementById('ruleset-container');
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const ruleSetId = doc.id;
+                        
+                        // Get card template
+                        let cardHtml = document.getElementById('ruleset-card-template').innerHTML;
+                        
+                        // Replace placeholders
+                        cardHtml = cardHtml.replace(/{id}/g, ruleSetId);
+                        cardHtml = cardHtml.replace(/{name}/g, data.name || 'Unnamed Rule Set');
+                        cardHtml = cardHtml.replace(/{updated_at}/g, new Date(data.updatedAt.toDate()).toLocaleString());
+                        cardHtml = cardHtml.replace(/{rule_count}/g, (data.rules ? data.rules.length : 0));
+                        
+                        // Create card element
+                        const card = document.createElement('div');
+                        card.id = `ruleset-card-${ruleSetId}`;
+                        card.innerHTML = cardHtml;
+                        
+                        // Add to container
+                        container.appendChild(card);
+                    });
+                })
+                .catch(error => {
+                    console.error("Error loading rule sets:", error);
+                    document.getElementById('ruleset-container').innerHTML = `
+                        <div class="col-span-3 text-center py-10 bg-white rounded-lg border border-gray-200">
+                            <p class="text-red-600 mb-4">Error loading rule sets: ${error.message}</p>
+                            <button
+                                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                onclick="loadRuleSets('${userId}')"
+                            >
+                                Try Again
+                            </button>
+                        </div>
+                    `;
+                });
+        }
+
+        // Close share dialog when clicking outside
+        document.getElementById('share-dialog-container').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('share-dialog-container')) {
+                document.getElementById('share-dialog-container').classList.add('hidden');
+            }
+        });
     </script>
-  </body>
+</body>
 </html>
