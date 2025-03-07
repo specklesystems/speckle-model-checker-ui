@@ -1,7 +1,14 @@
 name: Detect Changes
 
 on:
-  pull_request:
+  workflow_call:
+    outputs:
+      deploy_functions:
+        description: "Detects if Firebase Functions should be deployed"
+        value: ${{ jobs.detect_changes.outputs.deploy_functions }}
+      deploy_hosting:
+        description: "Detects if Firebase Hosting should be deployed"
+        value: ${{ jobs.detect_changes.outputs.deploy_hosting }}
 
 permissions:
   contents: read
