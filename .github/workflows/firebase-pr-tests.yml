@@ -1,49 +1,48 @@
-name: CI Tests for Dependency Updates (No Deploy)
+name: Jon defensively tests for dependencies that dont work
 
 on:
   pull_request:
-    branches:
-      - main
+
+permissions:
+  pull-requests: write
+  contents: read
 
 jobs:
-  test_firebase_functions:
+  test_dependencies:
     runs-on: ubuntu-latest
+
     steps:
-
-      - name: Debug GitHub Actor
-        run: echo "GitHub Actor is ${{ github.actor }}"
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools
+      # 🐍 Setup Python
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-      # 🔹 Setup Firebase Authentication (Required for Emulators)
-      - name: Setup Firebase Authentication
-        run: |
-          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}' | jq '.' > $HOME/firebase-key.json
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/firebase-key.json" >> $GITHUB_ENV
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: /home/runner/firebase-key.json
-
-      # 🔹 Setup Python Virtual Environment
-      - name: Setup Python Virtual Environment
+      # 🔹 Setup Virtual Environment
+      - name: Setup Virtual Environment
         run: |
           cd functions
-          python3 -m venv venv
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+
+      # 🔥 Test Dependency Installation
+      - name: Install Dependencies (Fail If Conflicts)
+        run: |
+          cd functions
           source venv/bin/activate
           pip install -r requirements.txt
 
-      # 🔹 Run Firebase Emulator Tests
-      - name: Test Firebase Functions (No Deploy)
-        run: firebase emulators:exec --only functions 'python -m unittest discover -s tests'
-
-      # 🔹 If Tests Fail, Add PR Comment + Label (For Renovate/Dependabot)
-      - name: Flag PR as Invalid if Tests Fail
-        if: failure() && (github.actor == 'renovate[bot]' || github.actor == 'dependabot[bot]')
+      # 🚨 Auto-Close PR If Failure (Only for Renovate)
+      - name: Close Renovate PR if Dependencies Fail
+        if: failure() && contains(github.actor, 'renovate')
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ This dependency update **breaks Firebase functions**. Firebase requires a specific version of \`cloudevents\`. Please update Renovate/Dependabot configuration to prevent this."
-          gh pr edit ${{ github.event.pull_request.number }} --add-label "invalid update"
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          gh pr comment $PR_NUMBER --body "⚠️ **Dependency Conflict!** This PR updates dependencies in a way that **breaks Firebase Functions**. Firebase requires specific package versions. Please adjust the Renovate config to avoid conflicts."
+          gh pr close $PR_NUMBER
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
