@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  pull-requests: read  # ✅ Ensure permission to fetch PR changes
+
 jobs:
   detect_changes:
     uses: ./.github/workflows/detect_changes.yml
