@@ -10,6 +10,10 @@ on:
         description: "Detects if Firebase Hosting should be deployed"
         value: ${{ jobs.detect_changes.outputs.deploy_hosting }}
 
+permissions:
+  contents: read
+  pull-requests: read  # ✅ Allow PRs to access changed files
+
 jobs:
   detect_changes:
     runs-on: ubuntu-latest
@@ -26,6 +30,7 @@ jobs:
         id: filter
         uses: dorny/paths-filter@v3
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}  # ✅ Required for forked PRs
           filters: |
             functions:
               - 'functions/**'
