@@ -59,23 +59,24 @@ jobs:
 
       - name: Install Dependencies (Fail If Conflicts)
         id: install_deps
-        continue-on-error: true  # Step can fail, but job will continue
         run: |
           cd functions
           source venv/bin/activate
-          { pip install -r requirements.txt 2>&1 | tee install_errors.log; echo $? > exit_code.txt; } || true
+          pip install -r requirements.txt 2>&1 | tee install_errors.log
         shell: bash
+        continue-on-error: false  # 🔴 This ensures failure stops the job
 
       - name: Capture Dependency Error
         id: capture_error
-        if: steps.install_deps.outcome == 'failure'
+        if: failure()
         run: |
           echo "error_msg<<EOF" >> $GITHUB_ENV
           tail -n 10 functions/install_errors.log >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
+          exit 1  # 🔴 Explicitly fail the job if an error is captured
 
       - name: Report PR Status Check - Success ✅
-        if: steps.install_deps.outcome == 'success'
+        if: success()
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -94,7 +95,7 @@ jobs:
             });
 
       - name: Report PR Status Check - Failure ❌
-        if: steps.install_deps.outcome == 'failure'
+        if: failure()
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -114,17 +115,5 @@ jobs:
             });
 
       - name: Close Renovate PR if Dependencies Fail
-        if: steps.install_deps.outcome == 'failure' && contains(github.actor, 'renovate')
-        run: |
-          PR_NUMBER=${{ github.event.pull_request.number }}
-          gh pr comment $PR_NUMBER --body "⚠️ **Dependency Conflict!** This PR updates dependencies in a way that **breaks Firebase Functions**. Firebase requires specific package versions. Please adjust the Renovate config to avoid conflicts.
-
-          **Error Log:**
-          \`\`\`
-          ${{ env.error_msg }}
-          \`\`\`"
-          gh pr close $PR_NUMBER
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+        if: failure
 
