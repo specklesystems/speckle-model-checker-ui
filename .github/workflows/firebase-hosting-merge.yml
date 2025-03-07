@@ -6,10 +6,39 @@ on:
       - main
 
 jobs:
+  # 🔍 Check What Changed
+  detect_changes:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy_functions: ${{ steps.check.outputs.functions }}
+      deploy_hosting: ${{ steps.check.outputs.hosting }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Detect Relevant Changes
+        id: check
+        run: |
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -qE '^functions/'; then
+            echo "functions=true" >> $GITHUB_ENV
+            echo "::set-output name=functions::true"
+          else
+            echo "functions=false" >> $GITHUB_ENV
+            echo "::set-output name=functions::false"
+          fi
+
+          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -qE '^public/|firebase.json'; then
+            echo "hosting=true" >> $GITHUB_ENV
+            echo "::set-output name=hosting::true"
+          else
+            echo "hosting=false" >> $GITHUB_ENV
+            echo "::set-output name=hosting::false"
+          fi
+
   # 🔹 Deploy Firebase Functions (Only if Backend Changes)
   deploy_functions:
-    if: "contains(github.event.head_commit.modified, 'functions/')"
-    
+    needs: detect_changes
+    if: needs.detect_changes.outputs.deploy_functions == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -62,46 +91,31 @@ jobs:
         run: firebase deploy --only functions --project speckle-model-checker
 
   # 🔹 Deploy Firebase Hosting (HTMX Static Files Only)
-      #
-      # Since this is an HTMX project, **no build step needed**.
-      # We assume that your `public/` directory already contains everything needed.
-      #
-      #    If Hosting deploy fails, check IAM permissions:
-      #    gcloud projects add-iam-policy-binding speckle-model-checker \
-      #      --member="serviceAccount:GITHUB_SERVICE_ACCOUNT_EMAIL" \
-      #      --role="roles/firebasehosting.admin"
-      #
-      # HTMX is here **purely to trigger the CEO**. No frameworks, no bloat, just vibes.
-  # 🔹 Deploy Firebase Hosting (Only if Frontend Changes)
+  #
+  # Since this is an HTMX project, **no build step needed**.
+  # We assume that your `public/` directory already contains everything needed.
+  #
+  #    If Hosting deploy fails, check IAM permissions:
+  #    gcloud projects add-iam-policy-binding speckle-model-checker \
+  #      --member="serviceAccount:GITHUB_SERVICE_ACCOUNT_EMAIL" \
+  #      --role="roles/firebasehosting.admin"
+  #
+  # 🚨 HTMX is here **purely to trigger the CEO**. No frameworks, no bloat, just vibes. 🚨
+  #
   deploy_hosting:
+    needs: detect_changes
+    if: needs.detect_changes.outputs.deploy_hosting == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 🔹 Check for changes in `public/` or `firebase.json`
-      - name: Check for Hosting-Related Changes
-        id: check_changes
-        run: |
-          if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E '^public/|firebase.json'; then
-            echo "deploy=true" >> $GITHUB_ENV
-          else
-            echo "deploy=false" >> $GITHUB_ENV
-          fi
-
-      # 🔹 Stop the job if no relevant changes
-      - name: Skip Deployment if No Changes
-        if: env.deploy == 'false'
-        run: echo "No relevant changes in public/, skipping deploy." && exit 0
-
       # 🔹 Install Firebase CLI
       - name: Install Firebase CLI
-        if: env.deploy == 'true'
         run: npm install -g firebase-tools
 
       # 🔹 Setup Firebase Authentication
       - name: Setup Firebase Authentication
-        if: env.deploy == 'true'
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}' | jq '.' > $HOME/firebase-key.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=$HOME/firebase-key.json" >> $GITHUB_ENV
@@ -110,7 +124,6 @@ jobs:
 
       # 🔹 Deploy to Firebase Hosting
       - name: Deploy to Firebase Hosting
-        if: env.deploy == 'true'
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
