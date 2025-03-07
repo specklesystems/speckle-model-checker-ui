@@ -7,6 +7,8 @@ on:
 
 jobs:
   # 🔍 Check What Changed
+  jobs:
+  # 🔍 Check What Changed
   detect_changes:
     runs-on: ubuntu-latest
     outputs:
@@ -21,19 +23,20 @@ jobs:
         run: |
           if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -qE '^functions/'; then
             echo "functions=true" >> $GITHUB_ENV
-            echo "::set-output name=functions::true"
+            echo "functions=true" >> $GITHUB_OUTPUT
           else
             echo "functions=false" >> $GITHUB_ENV
-            echo "::set-output name=functions::false"
+            echo "functions=false" >> $GITHUB_OUTPUT
           fi
 
           if git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -qE '^public/|firebase.json'; then
             echo "hosting=true" >> $GITHUB_ENV
-            echo "::set-output name=hosting::true"
+            echo "hosting=true" >> $GITHUB_OUTPUT
           else
             echo "hosting=false" >> $GITHUB_ENV
-            echo "::set-output name=hosting::false"
+            echo "hosting=false" >> $GITHUB_OUTPUT
           fi
+
 
   # 🔹 Deploy Firebase Functions (Only if Backend Changes)
   deploy_functions:
