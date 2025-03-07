@@ -24,26 +24,22 @@ jobs:
 
       - name: Fetch and Compare Changes
         run: |
-          # Fetch full history (to ensure diffs work correctly)
+          # Ensure we have full history (especially for direct commits)
           git fetch --prune --unshallow
-          
-          # Get the latest commit SHA from main
-          BASE_SHA=$(git rev-parse origin/main)
-          echo "BASE_SHA=$BASE_SHA" >> "$GITHUB_ENV"
-          echo "Comparing against: $BASE_SHA"
-          
-          # Check if we are in a direct push (not a PR)
-          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
-            echo "Detected a direct push to main."
-            PREV_SHA=$(git rev-parse HEAD^ || echo "")  # Get previous commit (fallback to empty)
-            if [ -z "$PREV_SHA" ]; then
-              echo "No previous commit found. Skipping diff."
-              echo "deploy_functions=false" >> "$GITHUB_ENV"
-              echo "deploy_hosting=false" >> "$GITHUB_ENV"
-              exit 0
-            fi
-            BASE_SHA="$PREV_SHA"
+      
+          # If this is a direct push to main, compare against the previous commit
+          if [ "$GITHUB_REF_NAME" = "main" ]; then
+            BASE_SHA=$(git rev-parse HEAD~1)
+            echo "🚀 Direct push detected! Comparing against previous commit: $BASE_SHA"
+          else
+            # If working in a PR, compare against origin/main
+            git checkout main
+            git pull origin main
+            BASE_SHA=$(git rev-parse origin/main)
+            echo "📌 PR detected! Comparing against: $BASE_SHA"
           fi
+      
+          echo "BASE_SHA=$BASE_SHA" >> "$GITHUB_ENV"
           
           # Debugging: Show Git Status and Logs
           echo "===== DEBUG: GIT STATUS ====="
@@ -56,23 +52,26 @@ jobs:
           # Get changed files
           CHANGED_FILES=$(git diff --name-only $BASE_SHA HEAD)
           echo "Changed files: $CHANGED_FILES"
-          
+      
           # Detect Functions changes
           if echo "$CHANGED_FILES" | grep -E '^functions/' > /dev/null; then
-            echo "Deploying Functions!"
+            echo "🚀 Deploying Functions!"
             echo "deploy_functions=true" >> "$GITHUB_ENV"
+            echo "deploy_functions=true" >> "$GITHUB_OUTPUT"
           else
             echo "No function changes detected."
             echo "deploy_functions=false" >> "$GITHUB_ENV"
+            echo "deploy_functions=false" >> "$GITHUB_OUTPUT"
           fi
-          
+      
           # Detect Hosting (public/) changes
           if echo "$CHANGED_FILES" | grep -E '^public/|^firebase.json' > /dev/null; then
-            echo "Deploying Hosting!"
+            echo "🚀 Deploying Hosting!"
             echo "deploy_hosting=true" >> "$GITHUB_ENV"
+            echo "deploy_hosting=true" >> "$GITHUB_OUTPUT"
           else
             echo "No hosting changes detected."
             echo "deploy_hosting=false" >> "$GITHUB_ENV"
+            echo "deploy_hosting=false" >> "$GITHUB_OUTPUT"
           fi
-
 
