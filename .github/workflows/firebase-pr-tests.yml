@@ -9,6 +9,10 @@ jobs:
   test_firebase_functions:
     runs-on: ubuntu-latest
     steps:
+
+      - name: Debug GitHub Actor
+        run: echo "GitHub Actor is ${{ github.actor }}"
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
