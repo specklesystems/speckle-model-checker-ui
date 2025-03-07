@@ -1,4 +1,4 @@
-name: CI Tests for Dependency Updates (No Deploy)
+name: Jonathon's battle against dependabot and renovate CI Tests for Dependency Updates (No Deploy)
 
 on:
   pull_request:
