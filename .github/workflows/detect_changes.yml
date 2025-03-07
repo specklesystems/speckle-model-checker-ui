@@ -38,13 +38,16 @@ jobs:
               - 'public/**'
               - 'firebase.json'
 
+      - name: Debug context SHA
+        run: echo "SHA: ${{ github.sha }}"
+        
       - name: Mark Success If No Deployment Needed ✅
         if: steps.filter.outputs.functions == 'false' && steps.filter.outputs.hosting == 'false'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            github.rest.checks.create({
+            const response = await github.rest.checks.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
               name: "Detect Changes",
@@ -56,3 +59,5 @@ jobs:
                 summary: "This PR does not affect Firebase Functions or Hosting. Safe to merge!"
               }
             });
+      
+            console.log(response);
