@@ -7,8 +7,6 @@ on:
 
 jobs:
   # 🔍 Check What Changed
-  jobs:
-  # 🔍 Check What Changed
   detect_changes:
     runs-on: ubuntu-latest
     outputs:
