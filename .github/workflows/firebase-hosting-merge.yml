@@ -18,6 +18,18 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: $HOME/firebase-key.json
 
+      - name: Debug Service Account JSON
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}' | jq '.' > $HOME/firebase-key.json
+          if [ -s "$HOME/firebase-key.json" ]; then
+            echo "Service account JSON is set and written correctly."
+          else
+            echo "ERROR: Service account JSON is EMPTY!"
+            exit 1
+          fi
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: $HOME/firebase-key.json
+
       # Install Firebase CLI
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
