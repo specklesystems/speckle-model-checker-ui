@@ -1,0 +1,49 @@
+name: Detect Changes
+
+on:
+  workflow_call:
+    outputs:
+      deploy_functions:
+        description: "Should deploy functions?"
+        value: ${{ jobs.detect.outputs.deploy_functions }}
+      deploy_hosting:
+        description: "Should deploy hosting?"
+        value: ${{ jobs.detect.outputs.deploy_hosting }}
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy_functions: ${{ steps.check_changes.outputs.deploy_functions }}
+      deploy_hosting: ${{ steps.check_changes.outputs.deploy_hosting }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Detect Changes
+        id: check_changes
+        run: |
+          CHANGED_FILES=$(git diff --name-only origin/main ${{ github.sha }})
+          echo "Changed files: $CHANGED_FILES"
+
+          # Detect Functions changes
+          if echo "$CHANGED_FILES" | grep -q '^functions/'; then
+            echo "Deploying Functions!"
+            echo "deploy_functions=true" >> "$GITHUB_ENV"
+            echo "deploy_functions=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No function changes detected."
+            echo "deploy_functions=false" >> "$GITHUB_ENV"
+            echo "deploy_functions=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Detect Hosting (public/) changes
+          if echo "$CHANGED_FILES" | grep -q '^public/' || echo "$CHANGED_FILES" | grep -q '^firebase.json'; then
+            echo "Deploying Hosting!"
+            echo "deploy_hosting=true" >> "$GITHUB_ENV"
+            echo "deploy_hosting=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No hosting changes detected."
+            echo "deploy_hosting=false" >> "$GITHUB_ENV"
+            echo "deploy_hosting=false" >> "$GITHUB_OUTPUT"
+          fi
