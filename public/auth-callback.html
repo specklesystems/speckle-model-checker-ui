@@ -15,51 +15,58 @@
       const codeVerifier = localStorage.getItem("speckle_code_verifier");
 
       // Log values for debugging
-      console.log("Access Code:", accessCode);
-      console.log("Code Verifier Retrieved:", codeVerifier);
+      console.log("🔍 Access Code:", accessCode);
+      console.log("🔍 Code Verifier Retrieved:", codeVerifier);
 
       if (!accessCode || !codeVerifier) {
-        alert("Authentication failed: Missing code or verifier.");
-        console.error("Missing access_code or code_verifier", { accessCode, codeVerifier });
+        alert("❌ Authentication failed: Missing code or verifier.");
+        console.error("❌ Missing access_code or code_verifier", { accessCode, codeVerifier });
         window.location.href = "/";
         return;
       }
 
-      // Exchange access_code for an access token
+      // Prepare request payload
+      const payload = {
+        accessCode: accessCode,
+        appId: "8eb6778f84",   // Speckle App ID
+        appSecret: "c3ec26f0e4", // Speckle App Secret
+        challenge: codeVerifier  // PKCE Code Verifier
+      };
+
+      console.log("🔍 Sending Token Request:", payload);
+
       try {
-        const requestBody = new URLSearchParams({
-          client_id: "8eb6778f84",   // Speckle App ID
-          client_secret: "c3ec26f0e4", // Speckle App Secret
-          grant_type: "authorization_code",
-          code: accessCode,
-          redirect_uri: "https://speckle-model-checker.web.app/auth/callback",
-          code_verifier: codeVerifier  // PKCE Challenge
-        });
-
-        console.log("Sending Token Request:", requestBody.toString());
-
         const response = await fetch("https://app.speckle.systems/auth/token", {
           method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: requestBody
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
         });
 
         const tokenResponse = await response.json();
-        console.log("Speckle Token Response:", tokenResponse, "Full Response:", response);
+        console.log("🔍 Speckle Token Response:", tokenResponse, "Full Response:", response);
 
-        if (tokenResponse.access_token) {
-          localStorage.setItem("speckle_access_token", tokenResponse.access_token);
+        if (tokenResponse.token) {
+          // Store tokens in localStorage
+          localStorage.removeItem("speckle_code_verifier"); // Remove challenge after use
+          localStorage.setItem("speckle_access_token", tokenResponse.token);
+          localStorage.setItem("speckle_refresh_token", tokenResponse.refreshToken);
+
+          // Redirect user to main page
           window.location.href = "/";
         } else {
-          alert("Failed to obtain access token: " + JSON.stringify(tokenResponse));
+          alert("❌ Failed to obtain access token: " + JSON.stringify(tokenResponse));
         }
       } catch (error) {
-        console.error("Error fetching token:", error);
-        alert("Network error while obtaining token.");
+        console.error("❌ Error fetching token:", error);
+        alert("❌ Network error while obtaining token.");
       }
     }
 
+    // Execute login handling on page load
     handleSpeckleLogin();
+
   </script>
 </body>
 
