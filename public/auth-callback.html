@@ -16,7 +16,7 @@
 
       // Log values for debugging
       console.log("Access Code:", accessCode);
-      console.log("Code Verifier:", codeVerifier);
+      console.log("Code Verifier Retrieved:", codeVerifier);
 
       if (!accessCode || !codeVerifier) {
         alert("Authentication failed: Missing code or verifier.");
@@ -45,7 +45,7 @@
         });
 
         const tokenResponse = await response.json();
-        console.log("Speckle Token Response:", tokenResponse);
+        console.log("Speckle Token Response:", tokenResponse, "Full Response:", response);
 
         if (tokenResponse.access_token) {
           localStorage.setItem("speckle_access_token", tokenResponse.access_token);
