@@ -233,10 +233,8 @@
 
     async function signInToSpeckle() {
       const clientId = "8eb6778f84"; // Your Speckle App ID
-      const redirectUri = encodeURIComponent("https://speckle-model-checker.web.app/auth/callback");
       const codeChallenge = await generateCodeChallenge();
-
-      const authUrl = `https://app.speckle.systems/authn/verify/${clientId}/${codeChallenge}?redirect_uri=${redirectUri}&response_type=code&scope=openid email profile`;
+      const authUrl = `https://app.speckle.systems/authn/verify/${clientId}/${codeChallenge}`;
 
       window.location.href = authUrl;
     }
