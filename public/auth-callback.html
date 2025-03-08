@@ -11,23 +11,23 @@
   <script>
     async function handleSpeckleLogin() {
       const params = new URLSearchParams(window.location.search);
-      const authCode = params.get("code");
+      const accessCode = params.get("access_code");
       const codeVerifier = localStorage.getItem("speckle_code_verifier");
 
-      if (!authCode || !codeVerifier) {
+      if (!accessCode || !codeVerifier) {
         alert("Authentication failed.");
         window.location.href = "/";
         return;
       }
 
-      // Exchange auth code for an access token
+      // Exchange access_code for an access token
       const tokenResponse = await fetch("https://app.speckle.systems/auth/token", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
           client_id: "8eb6778f84",
           grant_type: "authorization_code",
-          code: authCode,
+          code: accessCode,  // Use access_code from Speckle
           redirect_uri: "https://speckle-model-checker.web.app/auth/callback",
           code_verifier: codeVerifier
         })
