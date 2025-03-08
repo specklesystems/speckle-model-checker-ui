@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Processing Login...</title>
+</head>
+
+<body>
+  <script>
+    async function handleSpeckleLogin() {
+      const params = new URLSearchParams(window.location.search);
+      const authCode = params.get("code");
+      const codeVerifier = localStorage.getItem("speckle_code_verifier");
+
+      if (!authCode || !codeVerifier) {
+        alert("Authentication failed.");
+        window.location.href = "/";
+        return;
+      }
+
+      // Exchange auth code for an access token
+      const tokenResponse = await fetch("https://app.speckle.systems/auth/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: "8eb6778f84",
+          grant_type: "authorization_code",
+          code: authCode,
+          redirect_uri: "https://speckle-model-checker.web.app/auth/callback",
+          code_verifier: codeVerifier
+        })
+      }).then(res => res.json());
+
+      if (tokenResponse.access_token) {
+        localStorage.setItem("speckle_access_token", tokenResponse.access_token);
+        window.location.href = "/";
+      } else {
+        alert("Failed to obtain access token.");
+        window.location.href = "/";
+      }
+    }
+
+    handleSpeckleLogin();
+  </script>
+</body>
+
+</html>

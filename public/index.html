@@ -1,257 +1,311 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Speckle Model Checker - Rule Editor</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/2.0.4/htmx.min.js" integrity="sha512-2kIcAizYXhIn8TzUvqzEDZNuDZ+aW7yE/+f1HJHXFjQcGNfv1kqzJSTBRBSlOgp6B/KZsz1K0a3ZTqP9dnxioQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js" integrity="sha512-wnea99uKIC3TJF7v4eKk4Y+lMz2Mklv18+r4na2Gn1abDRPPOeef95xTzdwGD9e6zXJBteMIhZ1+68QC5byJZw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-functions-compat.js"></script>
-    <style>
-        .htmx-indicator {
-            opacity: 0;
-            transition: opacity 200ms ease-in;
-        }
-        .htmx-request .htmx-indicator {
-            opacity: 1;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speckle Model Checker - Rule Editor</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/2.0.4/htmx.min.js"
+    integrity="sha512-2kIcAizYXhIn8TzUvqzEDZNuDZ+aW7yE/+f1HJHXFjQcGNfv1kqzJSTBRBSlOgp6B/KZsz1K0a3ZTqP9dnxioQ=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-functions-compat.js"></script>
+  <style>
+    .htmx-indicator {
+      opacity: 0;
+      transition: opacity 200ms ease-in;
+    }
+
+    .htmx-request .htmx-indicator {
+      opacity: 1;
+    }
+  </style>
+  <!-- Use Tailwind CSS as a stylesheet, not a script -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="speckle-theme.css" rel="stylesheet">
+  <link href="https://rsms.me/inter/inter.css" rel="stylesheet">
+
 </head>
-<body class="bg-gray-50">
-    <nav class="bg-blue-600 text-white p-4">
-        <div class="container mx-auto flex justify-between items-center">
-            <div class="flex items-center">
-                <h1 class="text-xl font-bold">Speckle Model Checker</h1>
-                <span class="ml-2 px-2 py-1 bg-blue-500 text-xs rounded">Rule Editor</span>
-            </div>
-            <div class="flex items-center" id="auth-container">
-                <!-- Auth UI will be rendered here -->
-                <div class="htmx-indicator">
-                    <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                </div>
-                <button 
-                    id="login-button"
-                    class="px-4 py-2 bg-white text-blue-700 rounded hover:bg-gray-100"
-                    onclick="signInWithGoogle()"
-                >
-                    Sign In with Google
-                </button>
-                <div id="user-profile" class="hidden">
-                    <span id="user-name" class="mr-2"></span>
-                    <button 
-                        class="px-3 py-1 bg-blue-700 text-white rounded hover:bg-blue-800"
-                        onclick="signOut()"
-                    >
-                        Sign Out
-                    </button>
-                </div>
-            </div>
-        </div>
-    </nav>
 
-    <main class="container mx-auto p-4">
-        <div id="main-content">
-            <!-- This will be populated based on auth state -->
-            <div class="flex items-center justify-center h-64">
-                <div class="text-center">
-                    <svg class="animate-spin h-10 w-10 mx-auto text-blue-600 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <p class="text-gray-600">Loading...</p>
-                </div>
-            </div>
-        </div>
-    </main>
+<body class="bg-foundation-page text-foreground has-[.viewer-transparent]:!bg-transparent"">
+    <div><div>   
+    <!-- Fixed Navbar -->
+       
+  <nav class=" fixed z-40 top-0 w-full min-h-14 bg-foundation border-b border-outline-2 shadow-md">
+  <div class="flex gap-4 items-center justify-between h-full w-screen px-6 py-3 sm:flex-nowrap flex-wrap">
+    <!-- Left: Speckle Logo -->
+    <a href="/" class="flex items-center ">
+      <img
+        src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAisAAAIrCAMAAAAZcCkaAAAACXBIWXMAAAsTAAALEwEAmpwYAAAC01BMVEVHcEw3hPN7vP9aq/1opvl7vP96vP8EfvsxO88wO897vP8xO897vP9utf57vP9Rpv1zuP4Efvt7vP97vP9hr/4ijvwEfvsxO880l/x7vP87m/wEfvt6vP97vP97vP96vP97vP97vP9wtv57vP9UqP17vP97vP92uf53uv57vP8Efvt7vP8EfvtJov0EfvsFfvt7vP9yt/57vP9osv56u/8xO897vP95u/8/nf17vP97vP97vP97vP8EfvsEfvt7vP8QhPsIgPt6u/4Efvt7vP97vP8OhPsEfvsEfvsEfvsrkvwKgfsEfvsEfvt7vP97vP8EfvsEfvt7vP8xO89MpP17vP9ksP57vP9drf57vP8Efvt3tv0Efvt7vP97vP8EfvsEfvsxO88Efvt7vP8Efvswlfx7vP8XiPs0QtIxO897vP91sfsxO88ei/sEfvsZift7vP8Vae03mPxnsf57vP8xO88Efvt7vP8EfvsEfvsxO88/U9h7vP97vP97vP97vP97vP9rs/57vP8EfvsEfvsEfvsokfwxO88EfvsEfvt7vP9Dn/17vP8xO88EfvsEfvsEfvsEfvt7vP97vP8Efvt7vP8Efvs4SNQEfvsEfvsEfvsEfvstk/wEfvsEfvtGof0lj/wxO88EfvsEfvsEfvt7vP8EfvsEfvsEfvsEfvt7vP8Efvt7vP9SduV7vP91uf4yPdBqn/QEfvt7vP8EfvsEfvt7vP97vP8Efvt7vP8xO89klfAxO897vP8Efvt7vP8ShfsxO897vP8Uh/sbivsEfvt5uv4EfvsxO88Efvtxq/h7vP8Efvt7vP8MgvsxO88xO897vP8EfvsxO89rovUzPtAxO89vqfcEfvsEfvt7vP8EfvsEfvsxO89FX9xag+oxO89iku8xO88sQtQxO89IZd9diOxchupQceNGYd05StUvlPw3R9MxvAAEfvsxO897vP94B22YAAAA7XRSTlMAA/zAAf7m807s+v4LyzXA1JN1jsLV/vnI88W76XC44BhizQXAVOva3vaF1yLB3PpH0anG7uqe48Q6xX1b/Grd6vbxWbyJ7MkdXs7zL8BmgXdMldvAHsQOwaM79s2wQBTmC+GbmctE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"
+        alt="Speckle Logo" class="h-8">
+      <span class="text-sm font-medium text-foreground ml-3">Speckle Model Checker</span>
+    </a>
 
-    <!-- Templates -->
-    <template id="ruleset-list-template">
-        <div class="mb-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-gray-800">Your Rule Sets</h2>
-                <button
-                    class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
-                    hx-get="/api/rule-sets/new"
-                    hx-target="#main-content"
-                    hx-trigger="click"
-                    hx-indicator=".htmx-indicator"
-                >
-                    <span class="htmx-indicator mr-2">
-                        <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </span>
-                    Create New Rule Set
-                </button>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="ruleset-container">
-                <!-- Rule sets will be inserted here -->
-            </div>
-        </div>
-    </template>
+    <!-- Right: User Account -->
+    <div id="auth-container" class="flex items-center space-x-4 shrink-0">
+      <div class="htmx-indicator hidden">
+        <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+      </div>
 
-    <template id="ruleset-card-template">
-        <div class="bg-white rounded-lg shadow p-4 border border-gray-200">
-            <div class="flex justify-between items-start mb-3">
-                <h3 class="text-lg font-semibold text-gray-800">{name}</h3>
-                <div class="flex space-x-1">
-                    <button
-                        class="p-1 text-gray-500 hover:text-gray-700"
-                        hx-get="/api/rule-sets/{id}/edit"
-                        hx-target="#main-content"
-                        hx-trigger="click"
-                        title="Edit Rule Set"
-                    >
-                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                        </svg>
-                    </button>
-                    <button
-                        class="p-1 text-gray-500 hover:text-red-700"
-                        hx-delete="/api/rule-sets/{id}"
-                        hx-confirm="Are you sure you want to delete this rule set?"
-                        hx-target="#ruleset-card-{id}"
-                        hx-swap="outerHTML"
-                        title="Delete Rule Set"
-                    >
-                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                            <line x1="14" y1="11" x2="14" y2="17"></line>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-            <div class="text-sm text-gray-600 mb-3">
-                <p>Last updated: {updated_at}</p>
-                <p>{rule_count} rules</p>
-            </div>
-            <div class="flex space-x-2">
-                <button
-                    class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-                    hx-get="/api/rule-sets/{id}/edit"
-                    hx-target="#main-content"
-                >
-                    Edit Rules
-                </button>
-                <button
-                    class="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700"
-                    hx-get="/api/rule-sets/{id}/share"
-                    hx-target="#share-dialog-container"
-                    hx-trigger="click"
-                >
-                    Share
-                </button>
-                <button
-                    class="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700"
-                    hx-get="/api/rule-sets/{id}/export"
-                    hx-trigger="click"
-                >
-                    Export
-                </button>
-            </div>
-        </div>
-    </template>
+      <!-- User Display -->
+      <div id="user-profile" class="hidden flex items-center space-x-2">
+        <img id="user-avatar" src="https://via.placeholder.com/32" class="w-8 h-8 rounded-full">
+        <span id="user-name" class="text-sm font-medium"></span>
+        <button class="px-3 py-1 bg-white text-primary rounded hover:bg-secondary text-sm" onclick="signOut()">Sign
+          Out</button>
+      </div>
 
-    <!-- Share dialog container -->
-    <div id="share-dialog-container" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-        <!-- Dialog content will be loaded here -->
+      <!-- Login Button (Now Visible on Small Screens) -->
+      <button id="login-button" class="px-4 py-2 bg-white text-primary rounded hover:bg-primary shrink-0"
+        onclick="signInToSpeckle()">
+        Sign In
+      </button>
     </div>
+  </div>
+  </nav>
 
-    <script>
-        // Firebase config
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT.firebaseapp.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT.appspot.com",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const functions = firebase.functions();
+  <!-- Page Content (Pushed Down to Avoid Overlap) -->
+  <main class="container mx-auto pt-20 p-4">
+    <div id="main-content">
+      <div class="flex items-center justify-center h-64">
+        <div class="text-center">
+          <svg class="animate-spin h-10 w-10 mx-auto text-primary mb-4" xmlns="http://www.w3.org/2000/svg" fill="none"
+            viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          <p class="text-secondary">Loading...</p>
+        </div>
+      </div>
+    </div>
+  </main>
 
-        // Auth state changes
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                // User is signed in
-                document.getElementById('login-button').classList.add('hidden');
-                document.getElementById('user-profile').classList.remove('hidden');
-                document.getElementById('user-name').textContent = user.displayName;
-                
-                // Load rule sets
-                loadRuleSets(user.uid);
-            } else {
-                // User is signed out
-                document.getElementById('login-button').classList.remove('hidden');
-                document.getElementById('user-profile').classList.add('hidden');
-                document.getElementById('user-name').textContent = '';
-                
-                // Show login prompt
-                document.getElementById('main-content').innerHTML = `
+
+  <!-- Templates -->
+  <template id="ruleset-list-template">
+    <div class="mb-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-semibold text-foreground">Your Rule Sets</h2>
+        <button class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
+          hx-get="/api/rule-sets/new" hx-target="#main-content" hx-trigger="click" hx-indicator=".htmx-indicator">
+          <span class="htmx-indicator mr-2">
+            <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+              viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+              </path>
+            </svg>
+          </span>
+          Create New Rule Set
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="ruleset-container">
+        <!-- Rule sets will be inserted here -->
+      </div>
+    </div>
+  </template>
+
+  <template id="ruleset-card-template">
+    <div class="bg-white rounded-lg shadow p-4 border border-gray-200">
+      <div class="flex justify-between items-start mb-3">
+        <h3 class="text-lg font-semibold text-foreground">{name}</h3>
+        <div class="flex space-x-1">
+          <button class="p-1 text-gray-500 hover:text-gray-700" hx-get="/api/rule-sets/{id}/edit"
+            hx-target="#main-content" hx-trigger="click" title="Edit Rule Set">
+            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+            </svg>
+          </button>
+          <button class="p-1 text-gray-500 hover:text-red-700" hx-delete="/api/rule-sets/{id}"
+            hx-confirm="Are you sure you want to delete this rule set?" hx-target="#ruleset-card-{id}"
+            hx-swap="outerHTML" title="Delete Rule Set">
+            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="text-sm text-secondary mb-3">
+        <p>Last updated: {updated_at}</p>
+        <p>{rule_count} rules</p>
+      </div>
+      <div class="flex space-x-2">
+        <button class="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary-dark"
+          hx-get="/api/rule-sets/{id}/edit" hx-target="#main-content">
+          Edit Rules
+        </button>
+        <button class="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700"
+          hx-get="/api/rule-sets/{id}/share" hx-target="#share-dialog-container" hx-trigger="click">
+          Share
+        </button>
+        <button class="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700"
+          hx-get="/api/rule-sets/{id}/export" hx-trigger="click">
+          Export
+        </button>
+      </div>
+    </div>
+  </template>
+
+  <!-- Share dialog container -->
+  <div id="share-dialog-container"
+    class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <!-- Dialog content will be loaded here -->
+  </div>
+
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const functions = firebase.functions();
+
+    // Auth state changes
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        // User is signed in
+        document.getElementById('login-button').classList.add('hidden');
+        document.getElementById('user-profile').classList.remove('hidden');
+        document.getElementById('user-name').textContent = user.displayName;
+
+        // Load rule sets
+        loadRuleSets(user.uid);
+      } else {
+        // User is signed out
+        document.getElementById('login-button').classList.remove('hidden');
+        document.getElementById('user-profile').classList.add('hidden');
+        document.getElementById('user-name').textContent = '';
+
+        // Show login prompt
+        document.getElementById('main-content').innerHTML = `
                     <div class="text-center py-16">
-                        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Welcome to Speckle Checker Rule Editor</h2>
-                        <p class="text-gray-600 mb-6">Sign in to manage your rule sets for Speckle Automate</p>
+                        <h2 class="text-2xl font-semibold text-foreground mb-4">Welcome to Speckle Checker Rule Editor</h2>
+                        <p class="text-secondary mb-6">Sign in to manage your rule sets for Speckle Automate</p>
                         <button 
-                            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md"
+                            class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark shadow-md"
                             onclick="signInWithGoogle()"
                         >
                             Sign In with Google
                         </button>
                     </div>
                 `;
-            }
-        });
+      }
+    });
 
-        // Sign in with Google
-        function signInWithGoogle() {
-            const provider = new firebase.auth.GoogleAuthProvider();
-            auth.signInWithPopup(provider).catch(error => {
-                console.error("Error signing in with Google:", error);
-                alert("Failed to sign in: " + error.message);
-            });
-        }
+    // Sign in with Google
+    function signInWithGoogle() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).catch(error => {
+        console.error("Error signing in with Google:", error);
+        alert("Failed to sign in: " + error.message);
+      });
+    }
+    // App Id:8eb6778f84
+    // App secret: c3ec26f0e4
+    // directed url: https://app.speckle.systems/authn/verify/8eb6778f84/{code_challenge}
+    // Note: To authenticate users inside your app, direct them to
 
-        // Sign out
-        function signOut() {
-            auth.signOut().catch(error => {
-                console.error("Error signing out:", error);
-            });
-        }
+    // https://app.speckle.systems/authn/verify/8eb6778f84/{code_challenge}
+    // `{code_challenge}` is an OAuth2 plain code challenge that your app needs to generate for each authentication request.
 
-        // Load rule sets
-        function loadRuleSets(userId) {
-            // Get template
-            const template = document.getElementById('ruleset-list-template').innerHTML;
-            document.getElementById('main-content').innerHTML = template;
-            
-            // Fetch rule sets from Firestore
-            db.collection('ruleSets')
-                .where('userId', '==', userId)
-                .orderBy('updatedAt', 'desc')
-                .get()
-                .then(snapshot => {
-                    if (snapshot.empty) {
-                        // No rule sets found
-                        document.getElementById('ruleset-container').innerHTML = `
+    async function signInToSpeckle() {
+      const clientId = "8eb6778f84"; // Your Speckle App ID
+      const redirectUri = encodeURIComponent("https://speckle-model-checker.web.app/auth/callback");
+      const codeChallenge = await generateCodeChallenge();
+
+      const authUrl = `https://app.speckle.systems/authn/verify/${clientId}/${codeChallenge}?redirect_uri=${redirectUri}&response_type=code&scope=openid email profile`;
+
+      window.location.href = authUrl;
+    }
+
+    async function generateCodeChallenge() {
+      const codeVerifier = generateRandomString(64);
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(codeVerifier));
+      const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+      localStorage.setItem("speckle_code_verifier", codeVerifier); // Store for later use
+
+      return codeChallenge;
+    }
+
+    function generateRandomString(length) {
+      const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+      let randomString = "";
+      for (let i = 0; i < length; i++) {
+        const randomIndex = Math.floor(Math.random() * charset.length);
+        randomString += charset[randomIndex];
+      }
+      return randomString;
+    }
+
+    async function loadSpeckleUser() {
+      const accessToken = localStorage.getItem("speckle_access_token");
+
+      if (accessToken) {
+        const user = await fetch("https://app.speckle.systems/api/profile", {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        }).then(res => res.json());
+
+        document.getElementById("login-button").classList.add("hidden");
+        document.getElementById("user-profile").classList.remove("hidden");
+        document.getElementById("user-name").textContent = user.name;
+        document.getElementById("user-avatar").src = user.avatar || "https://via.placeholder.com/32";
+      }
+    }
+
+    // Run on page load
+    window.onload = loadSpeckleUser;
+
+    // Sign out
+    function signOut() {
+      auth.signOut().catch(error => {
+        console.error("Error signing out:", error);
+      });
+    }
+
+    // Load rule sets
+    function loadRuleSets(userId) {
+      // Get template
+      const template = document.getElementById('ruleset-list-template').innerHTML;
+      document.getElementById('main-content').innerHTML = template;
+
+      // Fetch rule sets from Firestore
+      db.collection('ruleSets')
+        .where('userId', '==', userId)
+        .orderBy('updatedAt', 'desc')
+        .get()
+        .then(snapshot => {
+          if (snapshot.empty) {
+            // No rule sets found
+            document.getElementById('ruleset-container').innerHTML = `
                             <div class="col-span-3 text-center py-10 bg-white rounded-lg border border-gray-200">
-                                <p class="text-gray-600 mb-4">You don't have any rule sets yet.</p>
+                                <p class="text-secondary mb-4">You don't have any rule sets yet.</p>
                                 <button
-                                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                    class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
                                     hx-get="/api/rule-sets/new"
                                     hx-target="#main-content"
                                 >
@@ -259,55 +313,58 @@
                                 </button>
                             </div>
                         `;
-                        return;
-                    }
-                    
-                    // Render rule sets
-                    const container = document.getElementById('ruleset-container');
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        const ruleSetId = doc.id;
-                        
-                        // Get card template
-                        let cardHtml = document.getElementById('ruleset-card-template').innerHTML;
-                        
-                        // Replace placeholders
-                        cardHtml = cardHtml.replace(/{id}/g, ruleSetId);
-                        cardHtml = cardHtml.replace(/{name}/g, data.name || 'Unnamed Rule Set');
-                        cardHtml = cardHtml.replace(/{updated_at}/g, new Date(data.updatedAt.toDate()).toLocaleString());
-                        cardHtml = cardHtml.replace(/{rule_count}/g, (data.rules ? data.rules.length : 0));
-                        
-                        // Create card element
-                        const card = document.createElement('div');
-                        card.id = `ruleset-card-${ruleSetId}`;
-                        card.innerHTML = cardHtml;
-                        
-                        // Add to container
-                        container.appendChild(card);
-                    });
-                })
-                .catch(error => {
-                    console.error("Error loading rule sets:", error);
-                    document.getElementById('ruleset-container').innerHTML = `
+            return;
+          }
+
+          // Render rule sets
+          const container = document.getElementById('ruleset-container');
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            const ruleSetId = doc.id;
+
+            // Get card template
+            let cardHtml = document.getElementById('ruleset-card-template').innerHTML;
+
+            // Replace placeholders
+            cardHtml = cardHtml.replace(/{id}/g, ruleSetId);
+            cardHtml = cardHtml.replace(/{name}/g, data.name || 'Unnamed Rule Set');
+            cardHtml = cardHtml.replace(/{updated_at}/g, new Date(data.updatedAt.toDate()).toLocaleString());
+            cardHtml = cardHtml.replace(/{rule_count}/g, (data.rules ? data.rules.length : 0));
+
+            // Create card element
+            const card = document.createElement('div');
+            card.id = `ruleset-card-${ruleSetId}`;
+            card.innerHTML = cardHtml;
+
+            // Add to container
+            container.appendChild(card);
+          });
+        })
+        .catch(error => {
+          console.error("Error loading rule sets:", error);
+          document.getElementById('ruleset-container').innerHTML = `
                         <div class="col-span-3 text-center py-10 bg-white rounded-lg border border-gray-200">
                             <p class="text-red-600 mb-4">Error loading rule sets: ${error.message}</p>
                             <button
-                                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
                                 onclick="loadRuleSets('${userId}')"
                             >
                                 Try Again
                             </button>
                         </div>
                     `;
-                });
-        }
-
-        // Close share dialog when clicking outside
-        document.getElementById('share-dialog-container').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('share-dialog-container')) {
-                document.getElementById('share-dialog-container').classList.add('hidden');
-            }
         });
-    </script>
+    }
+
+    // Close share dialog when clicking outside
+    document.getElementById('share-dialog-container').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('share-dialog-container')) {
+        document.getElementById('share-dialog-container').classList.add('hidden');
+      }
+    });
+  </script>
+  </div>
+  </div>
 </body>
+
 </html>
