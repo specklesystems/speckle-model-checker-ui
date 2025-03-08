@@ -14,6 +14,10 @@
       const accessCode = params.get("access_code");
       const codeVerifier = localStorage.getItem("speckle_code_verifier");
 
+      // Log values for debugging
+      console.log("Access Code:", accessCode);
+      console.log("Code Verifier:", codeVerifier);
+
       if (!accessCode || !codeVerifier) {
         alert("Authentication failed: Missing code or verifier.");
         console.error("Missing access_code or code_verifier", { accessCode, codeVerifier });
@@ -23,17 +27,21 @@
 
       // Exchange access_code for an access token
       try {
+        const requestBody = new URLSearchParams({
+          client_id: "8eb6778f84",   // Speckle App ID
+          client_secret: "c3ec26f0e4", // Speckle App Secret
+          grant_type: "authorization_code",
+          code: accessCode,
+          redirect_uri: "https://speckle-model-checker.web.app/auth/callback",
+          code_verifier: codeVerifier  // PKCE Challenge
+        });
+
+        console.log("Sending Token Request:", requestBody.toString());
+
         const response = await fetch("https://app.speckle.systems/auth/token", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            client_id: "8eb6778f84",   // Speckle App ID
-            client_secret: "c3ec26f0e4", // Speckle App Secret (🔴 REQUIRED)
-            grant_type: "authorization_code",
-            code: accessCode,  // Use access_code from Speckle
-            redirect_uri: "https://speckle-model-checker.web.app/auth/callback",
-            code_verifier: codeVerifier
-          })
+          body: requestBody
         });
 
         const tokenResponse = await response.json();
