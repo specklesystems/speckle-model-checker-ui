@@ -217,7 +217,7 @@
 
     async function signInToSpeckle() {
       const clientId = "8eb6778f84"; // Your Speckle App ID
-      const challenge = "banana" // await generateCodeChallenge();
+      const challenge = await generateCodeChallenge();
       const authUrl = `https://app.speckle.systems/authn/verify/${clientId}/${challenge}`;
 
       window.location.href = authUrl;
