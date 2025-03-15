@@ -12,7 +12,7 @@
     async function handleSpeckleLogin() {
       const params = new URLSearchParams(window.location.search);
       const accessCode = params.get("access_code");
-      const codeVerifier = localStorage.getItem("speckle_code_verifier");
+      const codeVerifier = "banana" // localStorage.getItem("speckle_code_verifier");
 
       // Log values for debugging
       console.log("🔍 Access Code:", accessCode);
@@ -30,7 +30,7 @@
         accessCode: accessCode,
         appId: "8eb6778f84",   // Speckle App ID
         appSecret: "c3ec26f0e4", // Speckle App Secret
-        challenge: "banana" // codeVerifier  // PKCE Code Verifier
+        challenge: codeVerifier  // PKCE Code Verifier
       };
 
       console.log("🔍 Sending Token Request:", payload);
