@@ -272,9 +272,16 @@
             })
           }).then(res => res.json());
 
+          if (!user?.data?.activeUser) {
+            console.error("Failed to fetch user data:", user);
+            return Promise.reject("Failed to fetch user data");
+          }
+
+
           document.getElementById("login-button").classList.add("hidden");
           document.getElementById("user-profile").classList.remove("hidden");
-          document.getElementById("user-name").textContent = user.name;
+          document.getElementById("user-name").textContent = activeUser.name;
+          document.getElementById("user-avatar").src = activeUser.avatar;
 
         } catch (err) {
           console.error("API call failed", err)
