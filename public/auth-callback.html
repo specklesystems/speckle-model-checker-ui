@@ -12,15 +12,15 @@
     async function handleSpeckleLogin() {
       const params = new URLSearchParams(window.location.search);
       const accessCode = params.get("access_code");
-      const codeVerifier = "banana" // localStorage.getItem("speckle_code_verifier");
+      const challenge = localStorage.getItem("speckle_challenge");
 
       // Log values for debugging
       console.log("🔍 Access Code:", accessCode);
-      console.log("🔍 Code Verifier Retrieved:", codeVerifier);
+      console.log("🔍 Code Challenge Retrieved:", challenge);
 
-      if (!accessCode || !codeVerifier) {
-        alert("❌ Authentication failed: Missing code or verifier.");
-        console.error("❌ Missing access_code or code_verifier", { accessCode, codeVerifier });
+      if (!accessCode || !challenge) {
+        alert("❌ Authentication failed: Missing challenge.");
+        console.error("❌ Missing access_code or challenge", { accessCode, challenge });
         window.location.href = "/";
         return;
       }
@@ -30,7 +30,7 @@
         accessCode: accessCode,
         appId: "8eb6778f84",   // Speckle App ID
         appSecret: "c3ec26f0e4", // Speckle App Secret
-        challenge: codeVerifier  // PKCE Code Verifier
+        challenge: challenge  // PKCE Code Verifier
       };
 
       console.log("🔍 Sending Token Request:", payload);
@@ -50,7 +50,7 @@
 
         if (tokenResponse.token) {
           // Store tokens in localStorage
-          localStorage.removeItem("speckle_code_verifier"); // Remove challenge after use
+          localStorage.removeItem("speckle_challenge"); // Remove challenge after use
           localStorage.setItem("speckle_access_token", tokenResponse.token);
           localStorage.setItem("speckle_refresh_token", tokenResponse.refreshToken);
 

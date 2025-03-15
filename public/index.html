@@ -217,23 +217,20 @@
 
     async function signInToSpeckle() {
       const clientId = "8eb6778f84"; // Your Speckle App ID
-      const codeChallenge = "banana" // await generateCodeChallenge();
-      const authUrl = `https://app.speckle.systems/authn/verify/${clientId}/${codeChallenge}`;
+      const challenge = "banana" // await generateCodeChallenge();
+      const authUrl = `https://app.speckle.systems/authn/verify/${clientId}/${challenge}`;
 
       window.location.href = authUrl;
     }
 
-    async function generateCodeChallenge() {
-      const codeVerifier = generateRandomString(64);
-      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(codeVerifier));
-      const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
-        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    async function generateChallenge() {
+      const challenge = generateRandomString(64);
+      
+      localStorage.setItem("speckle_challenge", challenge); // Store for later use
 
-      localStorage.setItem("speckle_code_verifier", codeVerifier); // Store for later use
+      console.log("Code Challenge Sent:", challenge);
 
-      console.log("Code Verifier Sent:", codeVerifier);
-
-      return codeChallenge;
+      return challenge;
     }
 
     function generateRandomString(length) {
