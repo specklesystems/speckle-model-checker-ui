@@ -215,22 +215,6 @@
       }
     });
 
-    // Sign in with Google
-    function signInWithGoogle() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider).catch(error => {
-        console.error("Error signing in with Google:", error);
-        alert("Failed to sign in: " + error.message);
-      });
-    }
-    // App Id:8eb6778f84
-    // App secret: c3ec26f0e4
-    // directed url: https://app.speckle.systems/authn/verify/8eb6778f84/{code_challenge}
-    // Note: To authenticate users inside your app, direct them to
-
-    // https://app.speckle.systems/authn/verify/8eb6778f84/{code_challenge}
-    // `{code_challenge}` is an OAuth2 plain code challenge that your app needs to generate for each authentication request.
-
     async function signInToSpeckle() {
       const clientId = "8eb6778f84"; // Your Speckle App ID
       const challenge = await generateChallenge();
@@ -241,7 +225,7 @@
 
     async function generateChallenge() {
       const challenge = generateRandomString(64);  
-      localStorage.setItem("speckle_challenge", challenge); // Store for later use
+      localStorage.setItem("speckle:auth:challenge", challenge); // Store for later use
 
       return challenge;
     }
@@ -258,16 +242,21 @@
     }
 
     async function loadSpeckleUser() {
-      const accessToken = localStorage.getItem("speckle_access_token");
+      const accessToken = localStorage.getItem("speckle:auth:token");
 
-      const query = `query {
-                      user {
+      const query = `query User {
+                      activeUser  {
+                        avatar
+                        id
+                        email
                         name
-                      },
-                      serverInfo {
-                        name
+                        bio
                         company
-                      }
+                        verified
+                        profiles
+                        role
+                        createdAt
+                      },
                     }`;
 
       if (accessToken) {
@@ -286,7 +275,7 @@
           document.getElementById("login-button").classList.add("hidden");
           document.getElementById("user-profile").classList.remove("hidden");
           document.getElementById("user-name").textContent = user.name;
-          
+
         } catch (err) {
           console.error("API call failed", err)
         }

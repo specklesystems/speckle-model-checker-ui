@@ -12,7 +12,7 @@
     async function handleSpeckleLogin() {
       const params = new URLSearchParams(window.location.search);
       const accessCode = params.get("access_code");
-      const challenge = localStorage.getItem("speckle_challenge");
+      const challenge = localStorage.getItem("speckle:auth:challenge");
 
       // Log values for debugging
       console.log("🔍 Access Code:", accessCode);
@@ -50,9 +50,9 @@
 
         if (tokenResponse.token) {
           // Store tokens in localStorage
-          localStorage.removeItem("speckle_challenge"); // Remove challenge after use
-          localStorage.setItem("speckle_access_token", tokenResponse.token);
-          localStorage.setItem("speckle_refresh_token", tokenResponse.refreshToken);
+          localStorage.removeItem("speckle:auth:challenge"); // Remove challenge after use
+          localStorage.setItem("speckle:auth:token", tokenResponse.token);
+          localStorage.setItem("speckle:auth:refresh-token", tokenResponse.refreshToken);
 
           // Redirect user to main page
           window.location.href = "/";
