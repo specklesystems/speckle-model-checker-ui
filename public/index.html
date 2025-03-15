@@ -206,7 +206,7 @@
                         <p class="text-secondary mb-6">Sign in to manage your rule sets for Speckle Automate</p>
                         <button 
                             class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark shadow-md"
-                            onclick="signInToSpeckle()"
+                            onclick="signInWithGoogle()"
                         >
                             Sign In with Speckle
                         </button>
@@ -215,22 +215,41 @@
       }
     });
 
+    // Sign in with Google
+    function signInWithGoogle() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).catch(error => {
+        console.error("Error signing in with Google:", error);
+        alert("Failed to sign in: " + error.message);
+      });
+    }
+    // App Id:8eb6778f84
+    // App secret: c3ec26f0e4
+    // directed url: https://app.speckle.systems/authn/verify/8eb6778f84/{code_challenge}
+    // Note: To authenticate users inside your app, direct them to
+
+    // https://app.speckle.systems/authn/verify/8eb6778f84/{code_challenge}
+    // `{code_challenge}` is an OAuth2 plain code challenge that your app needs to generate for each authentication request.
+
     async function signInToSpeckle() {
       const clientId = "8eb6778f84"; // Your Speckle App ID
-      const challenge = await generateChallenge();
-      const authUrl = `https://app.speckle.systems/authn/verify/${clientId}/${challenge}`;
+      const codeChallenge = await generateCodeChallenge();
+      const authUrl = `https://app.speckle.systems/authn/verify/${clientId}/${codeChallenge}`;
 
       window.location.href = authUrl;
     }
 
-    async function generateChallenge() {
-      const challenge = generateRandomString(64);
-      
-      localStorage.setItem("speckle_challenge", challenge); // Store for later use
+    async function generateCodeChallenge() {
+      const codeVerifier = generateRandomString(64);
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(codeVerifier));
+      const codeChallenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
-      console.log("Code Challenge Sent:", challenge);
+      localStorage.setItem("speckle_code_verifier", codeVerifier); // Store for later use
 
-      return challenge;
+      console.log("Code Verifier Sent:", codeVerifier);
+
+      return codeChallenge;
     }
 
     function generateRandomString(length) {
@@ -246,15 +265,37 @@
     async function loadSpeckleUser() {
       const accessToken = localStorage.getItem("speckle_access_token");
 
-      if (accessToken) {
-        const user = await fetch("https://app.speckle.systems/api/profile", {
-          headers: { Authorization: `Bearer ${accessToken}` }
-        }).then(res => res.json());
+      const query = `query {
+                      user {
+                        name
+                      },
+                      serverInfo {
+                        name
+                        company
+                      }
+                    }`;
 
-        document.getElementById("login-button").classList.add("hidden");
-        document.getElementById("user-profile").classList.remove("hidden");
-        document.getElementById("user-name").textContent = user.name;
-        document.getElementById("user-avatar").src = user.avatar || "https://via.placeholder.com/32";
+      if (accessToken) {
+        try {
+          const user = await fetch(`https://app.speckle.systems/graphql`, {
+            method: "POST",
+            headers: {
+              Authorization: "Bearer " + accessToken,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              query: query
+            })
+          }).then(res => res.json());
+
+          document.getElementById("login-button").classList.add("hidden");
+          document.getElementById("user-profile").classList.remove("hidden");
+          document.getElementById("user-name").textContent = user.name;
+        } catch (err) {
+          console.error("API call failed", err)
+        }
+      } else {
+        return Promise.reject("You are not logged in (token does not exist)")
       }
     }
 
