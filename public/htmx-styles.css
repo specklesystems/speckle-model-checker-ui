@@ -1,0 +1,133 @@
+/* htmx-styles.css */
+
+/* HTMX indicator styling */
+.htmx-indicator {
+  opacity: 0;
+  transition: opacity 200ms ease-in;
+}
+
+.htmx-request .htmx-indicator {
+  opacity: 1;
+}
+
+/* Toast notifications */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 12px 20px;
+  background-color: #4CAF50;
+  color: white;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  animation: fadeIn 0.3s, fadeOut 0.3s 2.7s;
+}
+
+.toast.error {
+  background-color: #F44336;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(20px); }
+}
+
+/* Severity badge colors */
+.severity-error {
+  background-color: #FEE2E2;
+  color: #DC2626;
+}
+
+.severity-warning {
+  background-color: #FEF3C7;
+  color: #D97706;
+}
+
+.severity-info {
+  background-color: #E0F2FE;
+  color: #0284C7;
+}
+
+/* Rule card hover effects */
+.rule-card {
+  transition: box-shadow 0.2s ease, transform 0.1s ease;
+}
+
+.rule-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Animation when adding new elements */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.condition-row {
+  animation: slideDown 0.2s ease;
+}
+
+/* Condition styling */
+.condition {
+  transition: background-color 0.2s ease;
+}
+
+.condition:hover {
+  background-color: #F9FAFB;
+}
+
+/* Modal animations */
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fixed.inset-0 {
+  animation: fadeInModal 0.2s ease;
+}
+
+.fixed.inset-0 > div {
+  animation: scaleIn 0.2s ease;
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Button hover effects */
+button {
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+/* Form field focus styles */
+input:focus, select:focus, textarea:focus {
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
+/* Loading states */
+.loading {
+  position: relative;
+}
+
+.loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
