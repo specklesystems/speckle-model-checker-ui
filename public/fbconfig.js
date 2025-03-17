@@ -1,10 +1,12 @@
+// fbconfig.js
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyA6IEa4YhEO_vEqnGwsoKJ1g1fyHmrE6ok",
+  authDomain: "speckle-model-checker.firebaseapp.com",
+  projectId: "speckle-model-checker",
+  storageBucket: "speckle-model-checker.firebasestorage.app",
+  messagingSenderId: "554830443409",
+  appId: "1:554830443409:web:5c6f70878b6bba419de030",
+  measurementId: "G-8PP6KEDGGP"
 };
 
 // Export the config for use in other files
