@@ -9,20 +9,30 @@ The solution uses a lightweight tech stack focused on simplicity and ease of imp
 - **Frontend**: HTML + HTMX + Tailwind CSS
 - **Backend**: Firebase Cloud Functions (serverless)
 - **Database**: Firebase Firestore
-- **Authentication**: Firebase Authentication
+- **Authentication**: Speckle Authentication with Firebase Auth
 - **Hosting**: Firebase Hosting
 
 This approach eliminates the need for Google Sheets while maintaining a simple, user-friendly interface for managing validation rules.
 
 ## Key Features
 
-1. **Authentication**: User management with Google Sign-In
+1. **Authentication**: User management with Speckle Single Sign-On
 2. **Rule Management**: Create, edit, and delete rule sets
 3. **Rule Editor**: Intuitive interface for defining rule conditions
 4. **Sharing**: Generate public URLs for use in Speckle Automations
 5. **Export**: Download rules as TSV files compatible with the current Checker function
 
 ## Implementation Details
+
+### Authentication Flow
+
+Users authenticate through Speckle's OAuth system:
+
+1. User clicks "Sign In with Speckle"
+2. Firebase function generates a secure challenge and redirects to Speckle auth
+3. After successful authentication, Speckle redirects back with an access code
+4. Server-side function exchanges the code for tokens and creates/updates a Firebase user
+5. User signs in to Firebase with a custom token and can access protected features
 
 ### Frontend
 
@@ -37,7 +47,9 @@ Key components:
 ### Backend
 
 Firebase Cloud Functions handle server-side operations:
-- Authentication validation
+- Authentication with Speckle
+- Firebase token generation
+- API endpoints returning HTML fragments for HTMX
 - Rule processing
 - TSV generation
 - Sharing mechanisms
@@ -64,16 +76,31 @@ ruleSets/
 │  │  │  ├─ propertyName: string
 │  │  │  ├─ predicate: string
 │  │  │  ├─ value: string
+
+userTokens/
+├─ [firebaseUserId]/
+│  ├─ speckleToken: string
+│  ├─ speckleRefreshToken: string
+│  ├─ updatedAt: timestamp
 ```
+
+## Security Improvements
+
+1. **Speckle OAuth Integration**: Users authenticate with their existing Speckle accounts
+2. **Server-Side Security**: All sensitive API keys and secrets remain on the server
+3. **Protected Routes**: API endpoints verify Firebase Auth tokens before processing requests
+4. **Custom Claims**: Firebase users have Speckle IDs attached as custom claims for verification
+5. **Token Management**: Secure token exchange and storage protocols
 
 ## Deployment
 
 The solution can be deployed with minimal setup:
 
 1. Create a Firebase project
-2. Enable Authentication, Firestore, Functions, and Hosting
-3. Deploy the HTML templates, Cloud Functions, and configuration
-4. Configure authentication providers
+2. Register a Speckle app to obtain APP_ID and APP_SECRET
+3. Configure Firebase environment variables with Speckle credentials
+4. Enable Authentication, Firestore, Functions, and Hosting
+5. Deploy the HTML templates, Cloud Functions, and configuration
 
 The deployment script automates most of these steps.
 
@@ -86,15 +113,17 @@ The deployment script automates most of these steps.
 5. **Real-time Validation**: Input validation can be performed as rules are created
 6. **Version Control**: Potential to add version history for rule sets
 7. **Advanced Features**: Framework for adding rule templates, testing, and more
+8. **Speckle Integration**: Seamless authentication with existing Speckle accounts
 
 ## Next Steps
 
 To fully implement this proof of concept:
 
-1. Complete the Firebase configuration with your project details
-2. Implement the remaining API endpoints in Cloud Functions
-3. Add proper error handling and input validation
-4. Add unit tests for critical functionality
-5. Consider additional features like rule templates or testing against sample objects
+1. Complete the Firebase configuration with your project and Speckle app details
+2. Set up secure environment variables for the Speckle APP_ID and APP_SECRET
+3. Implement the remaining API endpoints in Cloud Functions
+4. Add proper error handling and input validation
+5. Add unit tests for critical functionality
+6. Consider additional features like rule templates or testing against sample objects
 
-This implementation provides a solid foundation for replacing Google Sheets while maintaining compatibility with the existing Speckle Checker function.
+This implementation provides a solid foundation for replacing Google Sheets while maintaining compatibility with the existing Speckle Checker function and adding seamless Speckle authentication.
