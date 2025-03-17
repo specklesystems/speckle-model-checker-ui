@@ -12,11 +12,12 @@
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
   <script src="firebase-config.js"></script>
-   
+  
   <!-- Tailwind CSS -->
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="speckle-theme.css" rel="stylesheet">
   <link href="https://rsms.me/inter/inter.css" rel="stylesheet">
+  <link href="htmx-styles.css" rel="stylesheet">
   
   <style>
     .htmx-indicator {
@@ -36,7 +37,7 @@
     <div class="flex gap-4 items-center justify-between h-full w-screen px-6 py-3 sm:flex-nowrap flex-wrap">
       <!-- Left: Speckle Logo -->
       <a href="/" class="flex items-center">
-        <img src="[speckle-logo.png]" alt="Speckle Logo" class="h-8">
+        <img src="/img/speckle-logo.png" alt="Speckle Logo" class="h-8">
         <span class="text-sm font-medium text-foreground ml-3">Speckle Model Checker</span>
       </a>
 
@@ -51,7 +52,7 @@
 
         <!-- User Display (initially hidden) -->
         <div id="user-profile" class="hidden flex items-center space-x-2">
-          <img id="user-avatar" src="https://ui-avatars.com/api/?name=Speckle" class="w-8 h-8 rounded-full">
+          <img id="user-avatar" src="https://via.placeholder.com/32" class="w-8 h-8 rounded-full">
           <span id="user-name" class="text-sm font-medium"></span>
           <button class="px-3 py-1 bg-white text-primary rounded hover:bg-secondary text-sm" onclick="signOut()">Sign Out</button>
         </div>
@@ -59,7 +60,7 @@
         <!-- Login Button (initially hidden) -->
         <button id="login-button" class="hidden px-4 py-2 bg-white text-primary rounded hover:bg-primary shrink-0"
           onclick="signInToSpeckle()">
-          Sign In
+          Sign In with Speckle
         </button>
       </div>
     </div>
@@ -82,21 +83,16 @@
   </main>
 
   <!-- Share dialog container -->
-  <div id="share-dialog-container" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+  <div id="share-dialog-container"
+    class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
     <!-- Dialog content will be loaded here -->
   </div>
 
+  <!-- Toast container -->
+  <div id="toast-container"></div>
+
   <script>
-    // Initialize Firebase (use your Firebase config)
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
-    
+    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
@@ -119,11 +115,14 @@
         // Store the challenge ID for later use
         localStorage.setItem('speckle:auth:challengeId', authData.challengeId);
         
+        // Save the current URL for after login
+        localStorage.setItem('speckle:auth:returnUrl', window.location.pathname + window.location.search);
+        
         // Redirect to Speckle authentication
         window.location.href = authData.authUrl;
       } catch (error) {
         console.error('Authentication initialization error:', error);
-        alert('Failed to initialize login process. Please try again.');
+        showToast('Failed to initialize login process. Please try again.', true);
         
         // Reset auth container
         document.getElementById('login-button').classList.remove('hidden');
@@ -135,15 +134,17 @@
       auth.signOut().then(() => {
         // Clear any local storage items related to auth
         localStorage.removeItem("speckle:auth:challengeId");
+        localStorage.removeItem("speckle:auth:returnUrl");
         
         // Update UI
         document.getElementById('user-profile').classList.add('hidden');
         document.getElementById('login-button').classList.remove('hidden');
         
-        // Clear main content or reload rule sets for unauthenticated view
-        loadContentBasedOnAuthState(null);
+        // Clear main content and show welcome screen
+        showWelcomeScreen();
       }).catch((error) => {
         console.error("Error signing out:", error);
+        showToast("Error signing out", true);
       });
     }
     
@@ -169,50 +170,133 @@
       }
     }
     
-    // Load content based on auth state
-    function loadContentBasedOnAuthState(user) {
+    // Load content based on current URL and auth state
+    function loadContentBasedOnUrl(user) {
+      if (!user) {
+        showWelcomeScreen();
+        return;
+      }
+      
+      const path = window.location.pathname;
       const mainContent = document.getElementById('main-content');
       
-      if (user) {
-        // User is signed in - load their rule sets
-        mainContent.innerHTML = `
-          <div class="flex items-center justify-center h-64">
-            <div class="text-center">
-              <svg class="animate-spin h-10 w-10 mx-auto text-primary mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-              </svg>
-              <p class="text-secondary">Loading your rule sets...</p>
-            </div>
-          </div>
-        `;
-        
-        // Load rule sets via htmx
-        htmx.ajax('GET', '/api/rule-sets', {
-          target: '#main-content',
-          swap: 'innerHTML',
-          headers: {
-            'Authorization': `Bearer ${user.uid}`
-          }
-        });
-      } else {
-        // User is not signed in - show welcome screen
-        mainContent.innerHTML = `
-          <div class="flex flex-col items-center justify-center h-64">
-            <h1 class="text-2xl font-bold mb-4">Welcome to Speckle Model Checker</h1>
-            <p class="text-secondary mb-6">Sign in with your Speckle account to get started.</p>
-            <button onclick="signInToSpeckle()" class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark">
-              Sign In with Speckle
-            </button>
-          </div>
-        `;
+      // Check if this is a shared ruleset URL
+      if (path.startsWith('/shared/')) {
+        const ruleSetId = path.split('/').pop();
+        if (ruleSetId) {
+          // Load the shared ruleset
+          htmx.ajax('GET', `/api/shared-rule-sets/${ruleSetId}`, {
+            target: '#main-content',
+            swap: 'innerHTML'
+          });
+          return;
+        }
       }
+      
+      // Check for specific ruleset URLs
+      if (path.startsWith('/rulesets/')) {
+        const ruleSetId = path.split('/').pop();
+        if (ruleSetId) {
+          // Load the specific ruleset
+          htmx.ajax('GET', `/api/rulesets/${ruleSetId}/edit`, {
+            target: '#main-content',
+            swap: 'innerHTML',
+            headers: {
+              'Authorization': `Bearer ${user.uid}`
+            }
+          });
+          return;
+        }
+      }
+      
+      // Check for specific project URLs
+      if (path.startsWith('/projects/')) {
+        const projectId = path.split('/').pop();
+        if (projectId) {
+          // Load the specific project
+          htmx.ajax('GET', `/api/projects/${projectId}`, {
+            target: '#main-content',
+            swap: 'innerHTML',
+            headers: {
+              'Authorization': `Bearer ${user.uid}`
+            }
+          });
+          return;
+        }
+      }
+      
+      // Default: load project selection
+      htmx.ajax('GET', '/api/projects', {
+        target: '#main-content',
+        swap: 'innerHTML',
+        headers: {
+          'Authorization': `Bearer ${user.uid}`
+        }
+      });
+    }
+    
+    // Show welcome screen for non-authenticated users
+    function showWelcomeScreen() {
+      const mainContent = document.getElementById('main-content');
+      
+      mainContent.innerHTML = `
+        <div class="flex flex-col items-center justify-center h-64">
+          <h1 class="text-2xl font-bold mb-4">Welcome to Speckle Model Checker</h1>
+          <p class="text-secondary mb-6">Sign in with your Speckle account to manage rule sets for your projects.</p>
+          <button onclick="signInToSpeckle()" class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark">
+            Sign In with Speckle
+          </button>
+        </div>
+      `;
+    }
+    
+    // Show toast notification
+    function showToast(message, isError = false) {
+      const toast = document.createElement('div');
+      toast.className = `toast ${isError ? 'error' : ''}`;
+      toast.textContent = message;
+      document.getElementById('toast-container').appendChild(toast);
+      
+      // Remove toast after animation completes
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+    
+    // Handle URL changes manually
+    function navigateTo(url) {
+      window.history.pushState(null, '', url);
+      loadContentBasedOnUrl(auth.currentUser);
+    }
+    
+    // Copy to clipboard utility
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Copied to clipboard!');
+      }).catch(() => {
+        showToast('Failed to copy to clipboard', true);
+      });
     }
     
     // Listen for auth state changes
     auth.onAuthStateChanged((user) => {
       updateAuthUI(user);
-      loadContentBasedOnAuthState(user);
+      
+      if (user) {
+        // Check if we have a return URL from login
+        const returnUrl = localStorage.getItem('speckle:auth:returnUrl');
+        if (returnUrl) {
+          localStorage.removeItem('speckle:auth:returnUrl');
+          window.history.pushState(null, '', returnUrl);
+        }
+      }
+      
+      loadContentBasedOnUrl(user);
+    });
+    
+    // Listen for navigation events
+    window.addEventListener('popstate', () => {
+      loadContentBasedOnUrl(auth.currentUser);
     });
     
     // Close share dialog when clicking outside
@@ -223,12 +307,32 @@
     });
     
     // Setup htmx to include Firebase ID token with every request
-    document.addEventListener('htmx:configRequest', (event) => {
+    document.addEventListener('htmx:configRequest', async (event) => {
       const user = auth.currentUser;
       if (user) {
-        user.getIdToken().then((token) => {
+        try {
+          const token = await user.getIdToken();
           event.detail.headers['Authorization'] = `Bearer ${token}`;
-        });
+        } catch (error) {
+          console.error("Error getting ID token:", error);
+        }
+      }
+    });
+    
+    // Handle successful HTMX requests that should update the URL
+    document.addEventListener('htmx:afterOnLoad', (event) => {
+      // Check for data-hx-push-url attribute to update URL
+      const pushUrl = event.detail.elt.getAttribute('hx-push-url');
+      if (pushUrl) {
+        window.history.pushState(null, '', pushUrl);
+      }
+    });
+    
+    // Ensure login button is visible on initial load
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = auth.currentUser;
+      if (!user) {
+        document.getElementById('login-button').classList.remove('hidden');
       }
     });
   </script>

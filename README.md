@@ -1,129 +1,182 @@
-# Speckle Checker UI - Proof of Concept
+# Speckle Model Checker UI
 
-This document outlines a proof of concept implementation for replacing the Google Sheet interface for Speckle Checker rules with a dedicated web-based UI.
+A web-based interface for creating, managing, and sharing rule sets for the Speckle Model Checker.
 
-## Architecture Overview
+## Overview
 
-The solution uses a lightweight tech stack focused on simplicity and ease of implementation:
+This application provides a user-friendly interface for creating and managing validation rules for Speckle objects, replacing the previous Google Sheets based approach. It features:
 
-- **Frontend**: HTML + HTMX + Tailwind CSS
-- **Backend**: Firebase Cloud Functions (serverless)
+- Authentication via Speckle accounts
+- Create, edit, and delete rule sets
+- Intuitive rule editing interface
+- Share rule sets via links
+- Export rules as TSV files compatible with the current Checker function
+
+## Tech Stack
+
+- **Frontend**: HTML + [HTMX](https://htmx.org/) for interactivity
+- **CSS**: Tailwind CSS for styling
+- **Backend**: Firebase Cloud Functions (Python)
 - **Database**: Firebase Firestore
-- **Authentication**: Speckle Authentication with Firebase Auth
+- **Authentication**: Speckle OAuth + Firebase Auth
 - **Hosting**: Firebase Hosting
 
-This approach eliminates the need for Google Sheets while maintaining a simple, user-friendly interface for managing validation rules.
+## Setup Instructions
 
-## Key Features
+### Prerequisites
 
-1. **Authentication**: User management with Speckle Single Sign-On
-2. **Rule Management**: Create, edit, and delete rule sets
-3. **Rule Editor**: Intuitive interface for defining rule conditions
-4. **Sharing**: Generate public URLs for use in Speckle Automations
-5. **Export**: Download rules as TSV files compatible with the current Checker function
+1. [Firebase CLI](https://firebase.google.com/docs/cli) installed
+2. A Firebase project
+3. A Speckle App registered at https://app.speckle.systems/
 
-## Implementation Details
+### Configuration
+
+1. Clone this repository
+2. Update `firebase-config.js` with your Firebase project configuration
+3. Set up environment variables for Firebase Functions:
+
+```bash
+firebase functions:config:set speckle.app_id="YOUR_SPECKLE_APP_ID" speckle.app_secret="YOUR_SPECKLE_APP_SECRET"
+```
+
+4. Update the redirect URL in your Speckle App settings to point to your deployed application's auth callback URL: `https://your-app-name.web.app/auth-callback.html`
+
+### Deployment
+
+```bash
+# Install dependencies
+cd functions
+pip install -r requirements.txt
+cd ..
+
+# Deploy to Firebase
+firebase deploy
+```
+
+## Architecture
+
+### HTMX-Based Approach
+
+This application uses HTMX to provide a responsive and dynamic user interface without heavy JavaScript frameworks. HTMX allows for seamless server-rendered HTML updates through simple attributes, reducing client-side complexity while maintaining rich interactivity.
+
+Key benefits of the HTMX approach:
+- Simplified frontend development with minimal JavaScript
+- Server-side rendering for better performance and SEO
+- Progressive enhancement for better accessibility
+- Reduced bundle size and faster initial load times
 
 ### Authentication Flow
 
-Users authenticate through Speckle's OAuth system:
-
 1. User clicks "Sign In with Speckle"
-2. Firebase function generates a secure challenge and redirects to Speckle auth
-3. After successful authentication, Speckle redirects back with an access code
-4. Server-side function exchanges the code for tokens and creates/updates a Firebase user
-5. User signs in to Firebase with a custom token and can access protected features
+2. The application requests a challenge from the server
+3. User is redirected to Speckle authentication with the challenge
+4. Speckle redirects back with an access code
+5. The server exchanges the code for Speckle tokens and creates/updates a Firebase user
+6. The client signs in to Firebase with the custom token
 
-### Frontend
+### File Structure
 
-The frontend is built with HTMX, which provides dynamic content updates without a complex JavaScript framework. This keeps the codebase small and maintainable while still offering a responsive UI experience.
+- `/public` - Static files (HTML, CSS, JS)
+  - `index.html` - Main application page
+  - `auth-callback.html` - OAuth callback handler
+  - `shared/{id}.html` - Shared rule set viewer
+  - `firebase-config.js` - Firebase configuration
+  - `htmx-styles.css` - Styling for HTMX components
 
-Key components:
-- Rule set listing page
-- Rule editor interface
-- Sharing dialog
-- Export functionality
-
-### Backend
-
-Firebase Cloud Functions handle server-side operations:
-- Authentication with Speckle
-- Firebase token generation
-- API endpoints returning HTML fragments for HTMX
-- Rule processing
-- TSV generation
-- Sharing mechanisms
+- `/functions` - Firebase Cloud Functions
+  - `auth_functions.py` - Authentication functions
+  - `api_functions.py` - API functions for rule sets
+  - `utils.py` - Shared utility functions
 
 ### Database Schema
 
-The Firestore database uses the following structure:
+#### Firestore Collections
 
+- `ruleSets/{ruleSetId}`
+  - `name`: string
+  - `description`: string
+  - `userId`: string
+  - `createdAt`: timestamp
+  - `updatedAt`: timestamp
+  - `isShared`: boolean
+  - `sharedAt`: timestamp (if shared)
+  - `rules`: array
+    - `ruleNumber`: number
+    - `message`: string
+    - `severity`: string (Error, Warning, Info)
+    - `conditions`: array
+      - `logic`: string (WHERE, AND, OR, CHECK)
+      - `propertyName`: string
+      - `predicate`: string
+      - `value`: string
+
+- `userTokens/{userId}`
+  - `speckleToken`: string
+  - `speckleRefreshToken`: string
+  - `updatedAt`: timestamp
+
+## API Endpoints
+
+### Authentication
+
+- `GET /api/auth/init` - Initialize authentication with Speckle
+- `POST /api/auth/token` - Exchange Speckle code for Firebase token
+
+### Rule Sets
+
+- `GET /api/rule-sets` - List user's rule sets
+- `POST /api/rule-sets` - Create a new rule set
+- `GET /api/rule-sets/{id}` - Get a rule set
+- `PUT /api/rule-sets/{id}` - Update a rule set
+- `DELETE /api/rule-sets/{id}` - Delete a rule set
+- `GET /api/rule-sets/{id}/edit` - Get edit form for a rule set
+- `GET /api/rule-sets/{id}/export` - Export a rule set as TSV
+- `GET /api/rule-sets/{id}/share` - Get sharing dialog for a rule set
+- `PUT /api/rule-sets/{id}/toggle-sharing` - Toggle public sharing
+
+### Rules
+
+- `GET /api/rule-sets/{id}/rules` - List rules for a rule set
+- `POST /api/rule-sets/{id}/rules` - Add a rule to a rule set
+- `PUT /api/rule-sets/{id}/rules/{index}` - Update a rule
+- `DELETE /api/rule-sets/{id}/rules/{index}` - Delete a rule
+- `GET /api/rule-sets/{id}/rules/new` - Get form for new rule
+- `GET /api/rule-sets/{id}/rules/{index}/edit` - Get form for editing rule
+- `GET /api/rule-sets/{id}/condition-row/{index}` - Get new condition row HTML
+- `DELETE /api/rule-sets/{id}/condition-row/{index}` - Delete condition row
+
+### Shared Rule Sets
+
+- `GET /api/shared-rule-sets/{id}` - Get a publicly shared rule set
+
+## Security
+
+- Authentication is handled securely through Speckle OAuth
+- Sensitive credentials (APP_ID, APP_SECRET) are stored server-side
+- API endpoints are protected by Firebase Auth token verification
+- Rule sets are protected by user ID verification
+- Firestore security rules restrict access to authorized users only
+
+## Local Development
+
+```bash
+# Start Firebase emulators
+firebase emulators:start
+
+# This will start:
+# - Hosting at http://localhost:5000
+# - Functions at http://localhost:5001
+# - Firestore at http://localhost:8080
+# - Auth at http://localhost:9099
+# - Emulator UI at http://localhost:4000
 ```
-ruleSets/
-├─ [ruleSetId]/
-│  ├─ name: string
-│  ├─ userId: string
-│  ├─ createdAt: timestamp
-│  ├─ updatedAt: timestamp
-│  ├─ isShared: boolean
-│  ├─ sharedAt: timestamp (optional)
-│  ├─ rules: array
-│  │  ├─ ruleNumber: number
-│  │  ├─ message: string
-│  │  ├─ severity: string
-│  │  ├─ conditions: array
-│  │  │  ├─ logic: string (WHERE/AND/CHECK)
-│  │  │  ├─ propertyName: string
-│  │  │  ├─ predicate: string
-│  │  │  ├─ value: string
 
-userTokens/
-├─ [firebaseUserId]/
-│  ├─ speckleToken: string
-│  ├─ speckleRefreshToken: string
-│  ├─ updatedAt: timestamp
-```
+## Contributing
 
-## Security Improvements
+1. Create a feature branch
+2. Make your changes
+3. Submit a pull request
 
-1. **Speckle OAuth Integration**: Users authenticate with their existing Speckle accounts
-2. **Server-Side Security**: All sensitive API keys and secrets remain on the server
-3. **Protected Routes**: API endpoints verify Firebase Auth tokens before processing requests
-4. **Custom Claims**: Firebase users have Speckle IDs attached as custom claims for verification
-5. **Token Management**: Secure token exchange and storage protocols
+## License
 
-## Deployment
-
-The solution can be deployed with minimal setup:
-
-1. Create a Firebase project
-2. Register a Speckle app to obtain APP_ID and APP_SECRET
-3. Configure Firebase environment variables with Speckle credentials
-4. Enable Authentication, Firestore, Functions, and Hosting
-5. Deploy the HTML templates, Cloud Functions, and configuration
-
-The deployment script automates most of these steps.
-
-## Benefits Over Google Sheets
-
-1. **No External Dependencies**: Full control over the entire workflow
-2. **Better User Experience**: Purpose-built interface for rule management
-3. **Improved Security**: Built-in authentication and permission controls
-4. **Streamlined Updates**: Changes are immediately saved to the database
-5. **Real-time Validation**: Input validation can be performed as rules are created
-6. **Version Control**: Potential to add version history for rule sets
-7. **Advanced Features**: Framework for adding rule templates, testing, and more
-8. **Speckle Integration**: Seamless authentication with existing Speckle accounts
-
-## Next Steps
-
-To fully implement this proof of concept:
-
-1. Complete the Firebase configuration with your project and Speckle app details
-2. Set up secure environment variables for the Speckle APP_ID and APP_SECRET
-3. Implement the remaining API endpoints in Cloud Functions
-4. Add proper error handling and input validation
-5. Add unit tests for critical functionality
-6. Consider additional features like rule templates or testing against sample objects
-
-This implementation provides a solid foundation for replacing Google Sheets while maintaining compatibility with the existing Speckle Checker function and adding seamless Speckle authentication.
+MIT
