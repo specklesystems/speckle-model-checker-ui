@@ -8,6 +8,8 @@ import datetime
 import requests
 from ..utils.jinja_env import render_template
 from flask import make_response
+import secrets
+import string
 
 import os
 
@@ -107,10 +109,7 @@ def exchange_token(request):
         app_id = os.environ.get("SPECKLE_APP_ID")
         app_secret = os.environ.get("SPECKLE_APP_SECRET")
         server_url = os.environ.get("SPECKLE_SERVER_URL", "https://app.speckle.systems")
-
-        print(f"Access code: {access_code}")
-        print(f"Challenge ID: {challenge_id}")
-
+        
         token_exchange_url = f"{server_url}/auth/token"
         token_payload = {
             "accessCode": access_code,
@@ -173,8 +172,7 @@ def exchange_token(request):
         profile_data = profile_response.json()
         user_data = profile_data["data"]["activeUser"]
 
-        print(f"User data: {user_data}")
-        print(f"Profile data: {profile_data}")
+        password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(20))
 
         # Create or update Firebase user
         try:
@@ -197,6 +195,7 @@ def exchange_token(request):
                 email=user_data["email"],
                 display_name=user_data["name"],
                 photo_url=user_data["avatar"],
+                password=password,  # Add a random password
             )
 
         # Store Speckle tokens in Firestore
@@ -216,7 +215,7 @@ def exchange_token(request):
         )
 
         # Ensure it's a proper string (not bytes)
-        custom_token_str = custom_token.decode() if isinstance(custom_token, bytes) else custom_token
+        custom_token_str = custom_token.decode() 
 
         # Check if running locally in Firebase Emulator
         IS_FIREBASE_EMULATOR = os.environ.get("FUNCTIONS_EMULATOR") == "true"
@@ -231,11 +230,7 @@ def exchange_token(request):
             FIREBASE_FUNCTIONS_URL = f"https://us-central1-{os.environ.get('GCLOUD_PROJECT')}.cloudfunctions.net"
 
         # Redirect URL for authentication callback
-        redirect_url = f"{FIREBASE_HOSTING_URL}?authenticated={authenticated}&firebaseToken={custom_token_str}"
-
-
-        print(f"Custom token: {custom_token} {custom_token_str}")
-
+        redirect_url = f"{FIREBASE_HOSTING_URL}?authenticated={authenticated}&ft={custom_token_str}&sst={speckle_token}&ssrt={refresh_token}&suid={user_data['id']}"
 
         return https_fn.Response(
             status=302,

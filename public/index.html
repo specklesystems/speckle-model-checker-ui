@@ -182,7 +182,9 @@
       // Get URL parameters
       const urlParams = new URLSearchParams(window.location.search);
       const authenticated = urlParams.get('authenticated');
-      const firebaseToken = urlParams.get('firebaseToken');
+      const firebaseToken = urlParams.get('ft');
+      const sst = urlParams.get('sst');
+      const ssrt = urlParams.get('ssrt');
 
       // Check if this is an auth callback
       if (authenticated && firebaseToken) {
@@ -196,8 +198,6 @@
           // Store the token in localStorage
           localStorage.setItem('firebase:authToken', firebaseToken);
 
-          console.log('Successfully authenticated with token:', firebaseToken);
-
           // Sign in with the custom token
           auth.signInWithCustomToken(firebaseToken)
             .then(() => {
@@ -208,6 +208,7 @@
               console.error('Error signing in with custom token:', error);
               showToast('Failed to sign in with the provided token', true);
             });
+
         } else {
           showToast('Authentication failed', true);
         }
