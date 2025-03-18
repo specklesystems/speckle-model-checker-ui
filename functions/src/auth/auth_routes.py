@@ -62,15 +62,119 @@ def init_speckle_auth(request):
             host_url = f"{protocol}://{host_url}/"
 
         base_url = host_url.rstrip("/")
-        redirect_url = f"{base_url}/auth-callback.html"
-        auth_url = f"{server_url}/authn/verify/{app_id}/{challenge_id}?redirectUrl={redirect_url}"
+
+        auth_url = f"{server_url}/authn/verify/{app_id}/{challenge_id}"
 
         return https_fn.Response(
-            json.dumps({"challengeId": challenge_id, "authUrl": auth_url}),
+            json.dumps(
+                {
+                    "challengeId": challenge_id,
+                    "authUrl": auth_url,
+                    "appId": app_id,
+                    "appSecret": os.environ.get("SPECKLE_APP_SECRET"),
+                }
+            ),
             mimetype="application/json",
         )
     except Exception as e:
         print(f"Auth initialization error: {str(e)}")
+        return https_fn.Response(
+            json.dumps({"error": str(e)}), mimetype="application/json", status=500
+        )
+
+
+def get_user(request):
+    """Get the current user's profile from the Speckle Server."""
+    try:
+        server_url = os.environ.get("SPECKLE_SERVER_URL", "https://app.speckle.systems")
+
+        # token and refresh token are in the body of the POST request
+        token = request.json.get("token")
+        refresh_token = request.json.get("refreshToken")
+
+        query = """
+          query User{
+            activeUser {
+              id
+              name
+              email
+              avatar
+            }
+          }
+        """
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {token}",
+        }
+
+        response = requests.post(
+            f"{server_url}/graphql", headers=headers, json={"query": query}
+        )
+
+        if response.status_code != 200:
+            return https_fn.Response(
+                json.dumps({"error": "Failed to get user profile"}),
+                mimetype="application/json",
+                status=response.status_code,
+            )
+
+        data = response.json()
+        user = data["data"]["activeUser"]
+
+        password = "".join(
+            secrets.choice(string.ascii_letters + string.digits) for _ in range(20)
+        )
+
+        # Create or update Firebase user
+        try:
+            firebase_user = auth.get_user_by_email(user["email"])
+
+            # User exists, update properties if needed
+            if (
+                firebase_user.display_name != user["name"]
+                or firebase_user.photo_url != user["avatar"]
+            ):
+                auth.update_user(
+                    firebase_user.uid,
+                    display_name=user["name"],
+                    photo_url=user["avatar"],
+                )
+
+        except auth.UserNotFoundError:
+            # Create new user
+            firebase_user = auth.create_user(
+                email=user["email"],
+                display_name=user["name"],
+                photo_url=user["avatar"],
+                password=password,  # Add a random password
+            )
+
+        # Store Speckle tokens in Firestore
+        db = firestore.client()
+        db.collection("userTokens").document(firebase_user.uid).set(
+            {
+                "speckleId": user["id"],
+                "speckleToken": token,
+                "speckleRefreshToken": refresh_token,
+                "updatedAt": firestore.SERVER_TIMESTAMP,
+            }
+        )
+
+        # Create Firebase custom token
+        custom_token = auth.create_custom_token(
+            firebase_user.uid, {"speckleId": user["id"]}
+        )
+
+        # Ensure it's a proper string (not bytes)
+        custom_token_str = custom_token.decode()
+
+        return https_fn.Response(
+            json.dumps({"user": user, "customToken": custom_token_str}),
+            mimetype="application/json",
+        )
+    except Exception as e:
+        print(f"Error getting user profile: {str(e)}")
         return https_fn.Response(
             json.dumps({"error": str(e)}), mimetype="application/json", status=500
         )
@@ -109,7 +213,7 @@ def exchange_token(request):
         app_id = os.environ.get("SPECKLE_APP_ID")
         app_secret = os.environ.get("SPECKLE_APP_SECRET")
         server_url = os.environ.get("SPECKLE_SERVER_URL", "https://app.speckle.systems")
-        
+
         token_exchange_url = f"{server_url}/auth/token"
         token_payload = {
             "accessCode": access_code,
@@ -124,7 +228,12 @@ def exchange_token(request):
             return https_fn.Response(
                 json.dumps(
                     {
-                        "error": f"Failed to exchange token: {token_response.reason} ({token_response.status_code}) {json.loads(token_response.text)['err']}"
+                        "error": f"Failed to exchange token: {token_response.reason} ({token_response.status_code}) {json.loads(token_response.text)['err']}",
+                        "access_code": access_code,
+                        "challenge_id": challenge_id,
+                        "app_id": app_id,
+                        "app_secret": app_secret,
+                        "response": token_response.status_code,
                     }
                 ),
                 mimetype="application/json",
@@ -172,7 +281,9 @@ def exchange_token(request):
         profile_data = profile_response.json()
         user_data = profile_data["data"]["activeUser"]
 
-        password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(20))
+        password = "".join(
+            secrets.choice(string.ascii_letters + string.digits) for _ in range(20)
+        )
 
         # Create or update Firebase user
         try:
@@ -215,7 +326,7 @@ def exchange_token(request):
         )
 
         # Ensure it's a proper string (not bytes)
-        custom_token_str = custom_token.decode() 
+        custom_token_str = custom_token.decode()
 
         # Check if running locally in Firebase Emulator
         IS_FIREBASE_EMULATOR = os.environ.get("FUNCTIONS_EMULATOR") == "true"

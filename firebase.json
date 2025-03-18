@@ -1,19 +1,15 @@
 {
   "hosting": {
     "public": "public",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
-      {
-        "source": "/auth/callback",
-        "function": "callback_handler"
-      },
       {
         "source": "/api/auth/init",
         "function": "init_auth_fn"
+      },
+      {
+        "source": "/api/auth/users",
+        "function": "get_users_fn"
       },
       {
         "source": "/api/auth/token",
@@ -98,7 +94,7 @@
       "**/node_modules/**",
       "**/__pycache__/**",
       "**/.pytest_cache/**",
-      "**/venv/**" 
+      "**/venv/**"
     ]
   },
   "firestore": {

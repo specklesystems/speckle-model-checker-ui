@@ -116,15 +116,9 @@
 
         // Store the challenge ID for later use
         localStorage.setItem('speckle:auth:challengeId', authData.challengeId);
-
-        // **Force overwrite the cookie by reassigning it explicitly**
-        document.cookie = `speckle_challenge=${authData.challengeId}; path=/; secure; samesite=strict; max-age=900`;
-
-        // Debugging: Check if the cookie was set
-        console.log("Cookie set:", document.cookie);
-
-        // Save the current URL for after login
-        localStorage.setItem('speckle:auth:returnUrl', window.location.pathname + window.location.search);
+        localStorage.setItem('speckle:auth:appId', authData.appId);
+        localStorage.setItem('speckle:auth:appSecret', authData.appSecret);
+        localStorage.setItem('speckle:auth:authUrl', authData.authUrl);
 
         // Redirect to Speckle authentication
         window.location.href = authData.authUrl;
@@ -147,6 +141,12 @@
         // Update UI
         document.getElementById('user-profile').classList.add('hidden');
         document.getElementById('login-button').classList.remove('hidden');
+
+        auth.signOut().then(function () {
+          console.log('Signed Out');
+        }, function (error) {
+          console.error('Sign Out Error', error);
+        });
 
         // Clear main content and show welcome screen
         showWelcomeScreen();
@@ -177,6 +177,94 @@
         document.getElementById('login-button').classList.remove('hidden');
       }
     }
+
+    // Process the authentication callback
+    async function processAuthCallback() {
+
+      try {
+        // Get URL parameters and stored challenge ID
+        const params = new URLSearchParams(window.location.search);
+        const accessCode = params.get("access_code");
+        const challengeId = localStorage.getItem("speckle:auth:challengeId");
+        const appId = localStorage.getItem("speckle:auth:appId");
+        const authUrl = localStorage.getItem("speckle:auth:authUrl");
+        const appSecret = localStorage.getItem("speckle:auth:appSecret");
+
+
+        if (!accessCode || !challengeId) {
+          throw new Error("Missing authentication parameters");
+        }
+        // serverUrl is authUrl after the domain
+        const serverUrl = authUrl.split("/").slice(0, 3).join("/");
+
+        const response = await fetch(`${serverUrl}/auth/token`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            accessCode: accessCode,
+            challenge: challengeId,
+            appSecret: appSecret,
+            appId: appId
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Server error: ${response.status}`);
+        }
+
+        const authData = await response.json();
+
+        localStorage.setItem("speckle:auth:token", authData.token);
+        localStorage.setItem("speckle:auth:refreshToken", authData.refreshToken);
+        localStorage.removeItem("speckle:auth:challengeId");
+        localStorage.removeItem("speckle:auth:appId");
+        localStorage.removeItem("speckle:auth:appSecret");
+        localStorage.removeItem("speckle:auth:authUrl");
+
+        const userResponse = await fetch('/api/auth/users', {
+          method: 'POST',
+          headers: { "Accept": "application/json", "Content-Type": "application/json" },
+          body: JSON.stringify({ token: authData.token, refreshToken: authData.refreshToken })
+        });
+
+        if (!userResponse.ok) {
+          throw new Error('Failed to get user information');
+        }
+
+        // Update  status
+        showToast("Authentication successful!", false);
+
+        const userData = await userResponse.json();
+        console.log(`User data: ${JSON.stringify(userData, null, 2)}`);
+
+        // Sign in with the custom token
+        auth.signInWithCustomToken(userData.customToken)
+          .then(() => {
+            console.log('Successfully signed in with custom token');
+            showToast('Successfully signed in');
+          })
+          .catch((error) => {
+            console.error('Error signing in with custom token:', error);
+            showToast('Failed to sign in with the provided token', true);
+          });
+        
+        // Clean up URL without page reload by removing the query parameters
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+
+      } catch (error) {
+        // Handle errors
+        console.error("Authentication error:", error);
+        authStatusMessage.textContent = "Authentication failed";
+        authErrorMessage.textContent = error.message;
+        authErrorContainer.classList.remove('hidden');
+
+      }
+    }
+
 
     function handleAuthRedirect() {
       // Get URL parameters
@@ -377,25 +465,51 @@
       }
     });
 
+    // Check if we're in a callback
+    function checkForCallback() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('access_code');
+    }
+
     // Ensure login button is visible on initial load
     document.addEventListener('DOMContentLoaded', () => {
-      // Handle auth redirect parameters first
-      handleAuthRedirect();
 
-      // Then check if we have a saved token to automatically sign in
-      const savedToken = localStorage.getItem('firebase:authToken');
-      if (savedToken && !auth.currentUser) {
-        auth.signInWithCustomToken(savedToken).catch(error => {
-          console.error('Error signing in with saved token:', error);
-          localStorage.removeItem('firebase:authToken');
-        });
+      // Check if we're handling a callback
+      if (checkForCallback()) {
+
+        console.log("Callback detected. Processing...");
+
+
+        processAuthCallback();
+      } else {
+
+        console.log("No callback detected. Checking auth state...");
+
+        // Ensure login button is visible on initial load if not logged in
+        const user = auth.currentUser;
+        if (!user) {
+          document.getElementById('login-button').classList.remove('hidden');
+        }
       }
 
-      // Make sure the login button is visible if not signed in
-      const user = auth.currentUser;
-      if (!user) {
-        document.getElementById('login-button').classList.remove('hidden');
-      }
+
+      // // Handle auth redirect parameters first
+      // handleAuthRedirect();
+
+      // // Then check if we have a saved token to automatically sign in
+      // const savedToken = localStorage.getItem('firebase:authToken');
+      // if (savedToken && !auth.currentUser) {
+      //   auth.signInWithCustomToken(savedToken).catch(error => {
+      //     console.error('Error signing in with saved token:', error);
+      //     localStorage.removeItem('firebase:authToken');
+      //   });
+      // }
+
+      // // Make sure the login button is visible if not signed in
+      // const user = auth.currentUser;
+      // if (!user) {
+      //   document.getElementById('login-button').classList.remove('hidden');
+      // }
     });
   </script>
 </body>

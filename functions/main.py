@@ -13,7 +13,7 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app()
 
 # Import all function modules
-from src.auth.auth_routes import init_speckle_auth, exchange_token
+from src.auth.auth_routes import init_speckle_auth, exchange_token, get_user
 from src.projects.project_routes import (
     get_projects_fn, 
     get_project_details_fn, 
@@ -54,3 +54,7 @@ def init_auth_fn(req: https_fn.Request) -> https_fn.Response:
 @https_fn.on_request(cors=cors_config)
 def callback_handler(req: https_fn.Request) -> https_fn.Response:
     return exchange_token(req)
+
+@https_fn.on_request(cors=cors_config)
+def get_users_fn(req: https_fn.Request) -> https_fn.Response:
+    return get_user(req)
