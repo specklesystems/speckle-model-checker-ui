@@ -58,7 +58,7 @@ jobs:
           cd functions
           python3 -m venv venv
           source venv/bin/activate
-          pip install -r requirements.txt
+          python -m pip install -r requirements.txt
 
       # 🔹 Deploy Firebase Functions (Because why would this be easy?)
       #
@@ -68,7 +68,11 @@ jobs:
       #      --role="roles/cloudfunctions.admin"
       #
       - name: Deploy Firebase Functions
-        run: firebase deploy --only functions --project speckle-model-checker
+        run: |
+          source functions/venv/bin/activate
+          firebase deploy --only functions --project speckle-model-checker
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ env.GOOGLE_APPLICATION_CREDENTIALS }}
 
   # 🔹 Deploy Firebase Hosting (HTMX Static Files Only)
   #
