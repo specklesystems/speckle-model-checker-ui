@@ -1,174 +1,97 @@
-import aiohttp
-import json
+from firebase_functions import https_fn
+import csv
+import io
+from ..auth.token_verification import verify_firebase_token
+from ..utils.firestore_utils import get_ruleset, get_shared_ruleset
 
-async def get_user_projects(token):
-    """
-    Fetch all projects the user has access to via the Speckle API.
-    
-    Args:
-        token (str): Speckle authentication token
-        
-    Returns:
-        list: List of project objects
-    """
-    # GraphQL query to fetch user projects
-    query = """
-    query {
-      activeUser {
-        id
-        name
-        projectsPage(limit: 100) {
-          items {
-            id
-            name
-            description
-            updatedAt
-          }
-        }
-      }
-    }
-    """
-    
-    # Make the API request
-    projects = await execute_speckle_query(query, token)
-    
-    # Extract and return projects from the response
+@verify_firebase_token
+async def export_ruleset_as_tsv(request, ruleset_id):
+    """Export a ruleset as a TSV file."""
     try:
-        return projects['data']['activeUser']['projectsPage']['items']
-    except (KeyError, TypeError):
-        return []
-
-async def get_project_details(token, project_id):
-    """
-    Fetch detailed information about a specific project via the Speckle API.
-    
-    Args:
-        token (str): Speckle authentication token
-        project_id (str): Project ID to fetch
+        # Get user info from request
+        user_id = request.user_id
         
-    Returns:
-        dict: Project details
-    """
-    # GraphQL query to fetch project details
-    query = """
-    query($projectId: String!) {
-      project(id: $projectId) {
-        id
-        name
-        description
-        visibility
-        updatedAt
-        createdAt
-        models {
-          totalCount
-          items {
-            id
-            name
-            description
-          }
-        }
-        collaborators {
-          role
-          user {
-            id
-            name
-            avatar
-          }
-        }
-      }
-    }
-    """
-    
-    # Make the API request with variables
-    variables = {"projectId": project_id}
-    result = await execute_speckle_query(query, token, variables)
-    
-    # Extract and return project from the response
-    try:
-        return result['data']['project']
-    except (KeyError, TypeError):
-        return None
-
-async def get_model_objects(token, model_id):
-    """
-    Fetch objects for a specific model via the Speckle API.
-    
-    Args:
-        token (str): Speckle authentication token
-        model_id (str): Model ID to fetch objects from
+        # Get the ruleset
+        ruleset = await get_ruleset(ruleset_id)
         
-    Returns:
-        list: List of objects in the model
-    """
-    # GraphQL query to fetch model objects
-    query = """
-    query($modelId: String!) {
-      model(id: $modelId) {
-        id
-        name
-        commits(limit: 1) {
-          items {
-            id
-            referencedObject {
-              id
-              speckleType
-              children {
-                totalCount
-                cursor
-                objects {
-                  id
-                  speckleType
-                }
-              }
+        # If not found as a private ruleset, try as a shared ruleset
+        if not ruleset:
+            ruleset = await get_shared_ruleset(ruleset_id)
+            
+        if not ruleset:
+            return https_fn.Response(
+                "Ruleset not found",
+                mimetype="text/plain",
+                status=404
+            )
+        
+        # Verify ownership if not a shared ruleset
+        if not ruleset.get('isShared', False) and ruleset.get('userId') != user_id:
+            return https_fn.Response(
+                "You don't have permission to export this ruleset",
+                mimetype="text/plain",
+                status=403
+            )
+        
+        # Generate TSV
+        output = io.StringIO()
+        writer = csv.writer(output, delimiter='\t')
+        
+        # Write header
+        writer.writerow(['Rule #', 'Logic', 'Property Path', 'Predicate', 'Value', 'Severity', 'Message'])
+        
+        # Write rules
+        rule_number = 1
+        for rule in ruleset.get('rules', []):
+            # First condition row includes the rule number, severity, and message
+            first_condition = True
+            
+            for condition in rule.get('conditions', []):
+                row = []
+                
+                if first_condition:
+                    row.append(str(rule_number))  # Rule number
+                    first_condition = False
+                else:
+                    row.append('')  # Empty rule number for additional conditions
+                
+                row.append(condition.get('logic', ''))            # Logic
+                row.append(condition.get('propertyName', ''))     # Property Path
+                row.append(condition.get('predicate', ''))        # Predicate
+                row.append(condition.get('value', ''))            # Value
+                
+                if first_condition:
+                    row.append(rule.get('severity', 'Error'))     # Severity
+                    row.append(rule.get('message', ''))           # Message
+                else:
+                    row.append('')  # Empty severity for additional conditions
+                    row.append('')  # Empty message for additional conditions
+                
+                writer.writerow(row)
+            
+            rule_number += 1
+        
+        # Set headers for file download
+        filename = f"{ruleset.get('name', 'ruleset').replace(' ', '_').lower()}.tsv"
+        
+        return https_fn.Response(
+            output.getvalue(),
+            mimetype="text/tab-separated-values",
+            headers={
+                "Content-Disposition": f"attachment; filename=\"{filename}\""
             }
-          }
-        }
-      }
-    }
-    """
+        )
     
-    # Make the API request with variables
-    variables = {"modelId": model_id}
-    result = await execute_speckle_query(query, token, variables)
-    
-    # Extract and return objects from the response
-    try:
-        commit = result['data']['model']['commits']['items'][0]
-        referenced_object = commit['referencedObject']
-        children = referenced_object['children']['objects']
-        return children
-    except (KeyError, TypeError, IndexError):
-        return []
+    except Exception as e:
+        return https_fn.Response(
+            f"Error exporting ruleset: {str(e)}",
+            mimetype="text/plain",
+            status=500
+        )
 
-async def execute_speckle_query(query, token, variables=None):
-    """
-    Execute a GraphQL query against the Speckle API.
-    
-    Args:
-        query (str): GraphQL query
-        token (str): Speckle authentication token
-        variables (dict, optional): Query variables
-        
-    Returns:
-        dict: Response data
-    """
-    url = "https://app.speckle.systems/graphql"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {token}"
-    }
-    
-    payload = {
-        "query": query
-    }
-    
-    if variables:
-        payload["variables"] = variables
-    
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url, headers=headers, json=payload) as response:
-            if response.status == 200:
-                return await response.json()
-            else:
-                response_text = await response.text()
-                raise Exception(f"Speckle API error: {response.status} - {response_text}")
+# Create Firebase Function
+def export_ruleset_handler(request):
+    ruleset_id = request.args.get("ruleset_id")  # Extract from query params
+    return export_ruleset_as_tsv(request, ruleset_id)
+
+export_ruleset_fn = https_fn.on_request()(export_ruleset_handler)

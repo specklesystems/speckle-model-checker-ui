@@ -1,0 +1,59 @@
+<div class="bg-white rounded-lg shadow p-6">
+  <h2 class="text-xl font-semibold mb-6">Select a Speckle Project</h2>
+  
+  <div class="htmx-indicator flex justify-center mb-4">
+      <svg class="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+      </svg>
+  </div>
+  
+  {% if projects %}
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {% for project in projects %}
+              <div class="border border-gray-200 rounded p-4 hover:shadow-md transition-shadow">
+                  <h3 class="font-medium text-lg mb-2">{{ project.name }}</h3>
+                  
+                  {% if project.description %}
+                      <p class="text-gray-600 text-sm mb-4 line-clamp-2">{{ project.description }}</p>
+                  {% else %}
+                      <p class="text-gray-500 text-sm italic mb-4">No description</p>
+                  {% endif %}
+                  
+                  <div class="flex justify-between items-center">
+                      <span class="text-xs text-gray-500">Updated: {{ project.updatedAt|date }}</span>
+                      <button 
+                          class="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-primary-dark"
+                          hx-get="/api/projects/{{ project.id }}"
+                          hx-target="#main-content"
+                          hx-indicator=".htmx-indicator">
+                          Select
+                      </button>
+                  </div>
+              </div>
+          {% endfor %}
+      </div>
+  {% else %}
+      <div class="text-center py-10 bg-gray-50 rounded border border-gray-200">
+          <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+          <p class="text-gray-500 mb-4">You don't have any Speckle projects yet.</p>
+          <a href="https://app.speckle.systems/" target="_blank" class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark">
+              Create a Project on Speckle
+          </a>
+      </div>
+  {% endif %}
+  
+  <div class="mt-6 pt-4 border-t border-gray-200 flex justify-between items-center">
+      <button
+          class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+          onclick="window.location.reload()">
+          Refresh Projects
+      </button>
+      
+      <a href="https://app.speckle.systems/" target="_blank" class="text-primary hover:underline text-sm">
+          Open Speckle Web App
+      </a>
+  </div>
+</div>

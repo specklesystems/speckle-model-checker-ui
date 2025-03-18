@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Speckle Model Checker{% endblock %}</title>
+    
+    <!-- Styles -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="/speckle-theme.css" rel="stylesheet">
+    <link href="/htmx-styles.css" rel="stylesheet">
+    
+    <!-- HTMX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/2.0.4/htmx.min.js"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Custom Scripts -->
+    <script src="/firebase-config.js"></script>
+    
+    <!-- Additional styles -->
+    <style>
+        .htmx-indicator {
+            opacity: 0;
+            transition: opacity 200ms ease-in;
+        }
+        .htmx-request .htmx-indicator {
+            opacity: 1;
+        }
+    </style>
+    
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-foundation-page text-foreground">
+    <!-- Fixed Navbar -->
+    {% block navbar %}
+    <nav class="fixed z-40 top-0 w-full min-h-14 bg-foundation border-b border-outline-2 shadow-md">
+        <div class="flex gap-4 items-center justify-between h-full w-screen px-6 py-3 sm:flex-nowrap flex-wrap">
+            <!-- Left: Speckle Logo -->
+            <a href="/" class="flex items-center">
+                <img src="/img/speckle-logo.png" alt="Speckle Logo" class="h-8">
+                <span class="text-sm font-medium text-foreground ml-3">Speckle Model Checker</span>
+            </a>
+
+            <!-- Right: Auth Container -->
+            <div id="auth-container" class="flex items-center space-x-4 shrink-0">
+                <div class="htmx-indicator">
+                    <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                </div>
+
+                <!-- User Display (initially hidden) -->
+                <div id="user-profile" class="hidden flex items-center space-x-2">
+                    <img id="user-avatar" src="https://via.placeholder.com/32" class="w-8 h-8 rounded-full">
+                    <span id="user-name" class="text-sm font-medium"></span>
+                    <button class="px-3 py-1 bg-white text-primary rounded hover:bg-secondary text-sm" onclick="signOut()">Sign Out</button>
+                </div>
+
+                <!-- Login Button (initially hidden) -->
+                <button id="login-button" class="hidden px-4 py-2 bg-white text-primary rounded hover:bg-primary shrink-0"
+                    onclick="signInToSpeckle()">
+                    Sign In with Speckle
+                </button>
+            </div>
+        </div>
+    </nav>
+    {% endblock %}
+
+    <!-- Main Content -->
+    <main class="container mx-auto pt-20 p-4">
+        <div id="main-content">
+            {% block content %}
+            <div class="flex items-center justify-center h-64">
+                <div class="text-center">
+                    <svg class="animate-spin h-10 w-10 mx-auto text-primary mb-4" xmlns="http://www.w3.org/2000/svg" fill="none"
+                        viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    <p class="text-secondary">Loading...</p>
+                </div>
+            </div>
+            {% endblock %}
+        </div>
+    </main>
+
+    <!-- Modals -->
+    {% block modals %}
+    <!-- Share dialog container -->
+    <div id="share-dialog-container"
+        class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <!-- Dialog content will be loaded here -->
+    </div>
+    {% endblock %}
+
+    <!-- Toast container -->
+    <div id="toast-container"></div>
+
+    <!-- Scripts -->
+    {% block scripts %}
+    <script>
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        // Authentication utilities
+        async function signInToSpeckle() {
+            try {
+                // Show loading indicator
+                document.getElementById('login-button').classList.add('hidden');
+                document.querySelector('.htmx-indicator').classList.remove('hidden');
+
+                // Initialize authentication with the server
+                const response = await fetch('/api/auth/init');
+                if (!response.ok) {
+                    throw new Error('Could not initialize authentication');
+                }
+                
+                const authData = await response.json();
+                
+                // Store the challenge ID for later use
+                localStorage.setItem('speckle:auth:challengeId', authData.challengeId);
+                
+                // Save the current URL for after login
+                localStorage.setItem('speckle:auth:returnUrl', window.location.pathname + window.location.search);
+                
+                // Redirect to Speckle authentication
+                window.location.href = authData.authUrl;
+            } catch (error) {
+                console.error('Authentication initialization error:', error);
+                showToast('Failed to initialize login process. Please try again.', true);
+                
+                // Reset auth container
+                document.getElementById('login-button').classList.remove('hidden');
+                document.querySelector('.htmx-indicator').classList.add('hidden');
+            }
+        }
+
+        function signOut() {
+            auth.signOut().then(() => {
+                // Clear any local storage items related to auth
+                localStorage.removeItem("speckle:auth:challengeId");
+                localStorage.removeItem("speckle:auth:returnUrl");
+                
+                // Update UI
+                document.getElementById('user-profile').classList.add('hidden');
+                document.getElementById('login-button').classList.remove('hidden');
+                
+                // Clear main content and show welcome screen
+                showWelcomeScreen();
+            }).catch((error) => {
+                console.error("Error signing out:", error);
+                showToast("Error signing out", true);
+            });
+        }
+        
+        // Update UI based on auth state
+        function updateAuthUI(user) {
+            // Hide the loading indicator
+            document.querySelector('.htmx-indicator').classList.add('hidden');
+            
+            if (user) {
+                // User is signed in
+                document.getElementById('login-button').classList.add('hidden');
+                document.getElementById('user-profile').classList.remove('hidden');
+                
+                // Update user info
+                document.getElementById('user-name').textContent = user.displayName || user.email;
+                if (user.photoURL) {
+                    document.getElementById('user-avatar').src = user.photoURL;
+                }
+            } else {
+                // User is signed out
+                document.getElementById('user-profile').classList.add('hidden');
+                document.getElementById('login-button').classList.remove('hidden');
+            }
+        }
+        
+        // Load content based on current URL and auth state
+        function loadContentBasedOnUrl(user) {
+            if (!user) {
+                showWelcomeScreen();
+                return;
+            }
+            
+            const path = window.location.pathname;
+            const mainContent = document.getElementById('main-content');
+            
+            // Check if this is a shared ruleset URL
+            if (path.startsWith('/shared/')) {
+                const ruleSetId = path.split('/').pop();
+                if (ruleSetId) {
+                    // Load the shared ruleset
+                    htmx.ajax('GET', `/api/shared-rule-sets/${ruleSetId}`, {
+                        target: '#main-content',
+                        swap: 'innerHTML'
+                    });
+                    return;
+                }
+            }
+            
+            // Check for specific ruleset URLs
+            if (path.startsWith('/rulesets/')) {
+                const ruleSetId = path.split('/').pop();
+                if (ruleSetId) {
+                    // Load the specific ruleset
+                    htmx.ajax('GET', `/api/rulesets/${ruleSetId}/edit`, {
+                        target: '#main-content',
+                        swap: 'innerHTML',
+                        headers: {
+                            'Authorization': `Bearer ${user.uid}`
+                        }
+                    });
+                    return;
+                }
+            }
+            
+            // Check for specific project URLs
+            if (path.startsWith('/projects/')) {
+                const projectId = path.split('/').pop();
+                if (projectId) {
+                    // Load the specific project
+                    htmx.ajax('GET', `/api/projects/${projectId}`, {
+                        target: '#main-content',
+                        swap: 'innerHTML',
+                        headers: {
+                            'Authorization': `Bearer ${user.uid}`
+                        }
+                    });
+                    return;
+                }
+            }
+            
+            // Default: load project selection
+            htmx.ajax('GET', '/api/projects', {
+                target: '#main-content',
+                swap: 'innerHTML',
+                headers: {
+                    'Authorization': `Bearer ${user.uid}`
+                }
+            });
+        }
+        
+        // Show welcome screen for non-authenticated users
+        function showWelcomeScreen() {
+            const mainContent = document.getElementById('main-content');
+            
+            mainContent.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-64">
+                    <h1 class="text-2xl font-bold mb-4">Welcome to Speckle Model Checker</h1>
+                    <p class="text-secondary mb-6">Sign in with your Speckle account to manage rule sets for your projects.</p>
+                    <button onclick="signInToSpeckle()" class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark">
+                        Sign In with Speckle
+                    </button>
+                </div>
+            `;
+        }
+        
+        // Show toast notification
+        function showToast(message, isError = false) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${isError ? 'error' : ''}`;
+            toast.textContent = message;
+            document.getElementById('toast-container').appendChild(toast);
+            
+            // Remove toast after animation completes
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+        
+        // Handle URL changes manually
+        function navigateTo(url) {
+            window.history.pushState(null, '', url);
+            loadContentBasedOnUrl(auth.currentUser);
+        }
+        
+        // Copy to clipboard utility
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Copied to clipboard!');
+            }).catch(() => {
+                showToast('Failed to copy to clipboard', true);
+            });
+        }
+        
+        // Listen for auth state changes
+        auth.onAuthStateChanged((user) => {
+            updateAuthUI(user);
+            
+            if (user) {
+                // Check if we have a return URL from login
+                const returnUrl = localStorage.getItem('speckle:auth:returnUrl');
+                if (returnUrl) {
+                    localStorage.removeItem('speckle:auth:returnUrl');
+                    window.history.pushState(null, '', returnUrl);
+                }
+            }
+            
+            loadContentBasedOnUrl(user);
+        });
+        
+        // Listen for navigation events
+        window.addEventListener('popstate', () => {
+            loadContentBasedOnUrl(auth.currentUser);
+        });
+        
+        // Close share dialog when clicking outside
+        document.getElementById('share-dialog-container').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('share-dialog-container')) {
+                document.getElementById('share-dialog-container').classList.add('hidden');
+            }
+        });
+        
+        // Setup htmx to include Firebase ID token with every request
+        document.addEventListener('htmx:configRequest', async (event) => {
+            const user = auth.currentUser;
+            if (user) {
+                try {
+                    const token = await user.getIdToken();
+                    event.detail.headers['Authorization'] = `Bearer ${token}`;
+                } catch (error) {
+                    console.error("Error getting ID token:", error);
+                }
+            }
+        });
+        
+        // Handle successful HTMX requests that should update the URL
+        document.addEventListener('htmx:afterOnLoad', (event) => {
+            // Check for data-hx-push-url attribute to update URL
+            const pushUrl = event.detail.elt.getAttribute('hx-push-url');
+            if (pushUrl) {
+                window.history.pushState(null, '', pushUrl);
+            }
+        });
+        
+        // Ensure login button is visible on initial load
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = auth.currentUser;
+            if (!user) {
+                document.getElementById('login-button').classList.remove('hidden');
+            }
+        });
+    </script>
+    {% endblock %}
+</body>
+</html>

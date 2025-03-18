@@ -11,20 +11,20 @@
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js"></script>
-  
+  <script src="fbconfig.js"></script>
+
   <!-- Tailwind CSS -->
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="speckle-theme.css" rel="stylesheet">
   <link href="https://rsms.me/inter/inter.css" rel="stylesheet">
   <link href="htmx-styles.css" rel="stylesheet">
-  
+
   <style>
     .htmx-indicator {
       opacity: 0;
       transition: opacity 200ms ease-in;
     }
-    
+
     .htmx-request .htmx-indicator {
       opacity: 1;
     }
@@ -44,7 +44,8 @@
       <!-- Right: Auth Container -->
       <div id="auth-container" class="flex items-center space-x-4 shrink-0">
         <div class="htmx-indicator">
-          <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+            viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
           </svg>
@@ -54,7 +55,8 @@
         <div id="user-profile" class="hidden flex items-center space-x-2">
           <img id="user-avatar" src="https://avatar.iran.liara.run/public" class="w-8 h-8 rounded-full">
           <span id="user-name" class="text-sm font-medium"></span>
-          <button class="px-3 py-1 bg-white text-primary rounded hover:bg-secondary text-sm" onclick="signOut()">Sign Out</button>
+          <button class="px-3 py-1 bg-white text-primary rounded hover:bg-secondary text-sm" onclick="signOut()">Sign
+            Out</button>
         </div>
 
         <!-- Login Button (initially hidden) -->
@@ -96,7 +98,7 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
-    
+
     // Authentication utilities
     async function signInToSpeckle() {
       try {
@@ -109,21 +111,27 @@
         if (!response.ok) {
           throw new Error('Could not initialize authentication');
         }
-        
+
         const authData = await response.json();
-        
+
         // Store the challenge ID for later use
         localStorage.setItem('speckle:auth:challengeId', authData.challengeId);
-        
+
+        // **Force overwrite the cookie by reassigning it explicitly**
+        document.cookie = `speckle_challenge=${authData.challengeId}; path=/; secure; samesite=strict; max-age=900`;
+
+        // Debugging: Check if the cookie was set
+        console.log("Cookie set:", document.cookie);
+
         // Save the current URL for after login
         localStorage.setItem('speckle:auth:returnUrl', window.location.pathname + window.location.search);
-        
+
         // Redirect to Speckle authentication
         window.location.href = authData.authUrl;
       } catch (error) {
         console.error('Authentication initialization error:', error);
         showToast('Failed to initialize login process. Please try again.', true);
-        
+
         // Reset auth container
         document.getElementById('login-button').classList.remove('hidden');
         document.querySelector('.htmx-indicator').classList.add('hidden');
@@ -135,11 +143,11 @@
         // Clear any local storage items related to auth
         localStorage.removeItem("speckle:auth:challengeId");
         localStorage.removeItem("speckle:auth:returnUrl");
-        
+
         // Update UI
         document.getElementById('user-profile').classList.add('hidden');
         document.getElementById('login-button').classList.remove('hidden');
-        
+
         // Clear main content and show welcome screen
         showWelcomeScreen();
       }).catch((error) => {
@@ -147,17 +155,17 @@
         showToast("Error signing out", true);
       });
     }
-    
+
     // Update UI based on auth state
     function updateAuthUI(user) {
       // Hide the loading indicator
       document.querySelector('.htmx-indicator').classList.add('hidden');
-      
+
       if (user) {
         // User is signed in
         document.getElementById('login-button').classList.add('hidden');
         document.getElementById('user-profile').classList.remove('hidden');
-        
+
         // Update user info
         document.getElementById('user-name').textContent = user.displayName || user.email;
         if (user.photoURL) {
@@ -169,17 +177,57 @@
         document.getElementById('login-button').classList.remove('hidden');
       }
     }
-    
+
+    function handleAuthRedirect() {
+      // Get URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const authenticated = urlParams.get('authenticated');
+      const firebaseToken = urlParams.get('firebaseToken');
+
+      // Check if this is an auth callback
+      if (authenticated && firebaseToken) {
+        console.log('Authentication redirect detected');
+
+        // booleanify the authenticated string
+        var authenticatedState = authenticated === 'True';
+
+        // Check if authentication was successful
+        if (authenticatedState) {
+          // Store the token in localStorage
+          localStorage.setItem('firebase:authToken', firebaseToken);
+
+          console.log('Successfully authenticated with token:', firebaseToken);
+
+          // Sign in with the custom token
+          auth.signInWithCustomToken(firebaseToken)
+            .then(() => {
+              console.log('Successfully signed in with custom token');
+              showToast('Successfully signed in');
+            })
+            .catch((error) => {
+              console.error('Error signing in with custom token:', error);
+              showToast('Failed to sign in with the provided token', true);
+            });
+        } else {
+          showToast('Authentication failed', true);
+        }
+
+        // Clean up URL without page reload by removing the query parameters
+        const cleanUrl = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    }
+
     // Load content based on current URL and auth state
     function loadContentBasedOnUrl(user) {
       if (!user) {
         showWelcomeScreen();
         return;
       }
-      
+
       const path = window.location.pathname;
       const mainContent = document.getElementById('main-content');
-      
+
       // Check if this is a shared ruleset URL
       if (path.startsWith('/shared/')) {
         const ruleSetId = path.split('/').pop();
@@ -192,7 +240,7 @@
           return;
         }
       }
-      
+
       // Check for specific ruleset URLs
       if (path.startsWith('/rulesets/')) {
         const ruleSetId = path.split('/').pop();
@@ -208,7 +256,7 @@
           return;
         }
       }
-      
+
       // Check for specific project URLs
       if (path.startsWith('/projects/')) {
         const projectId = path.split('/').pop();
@@ -224,7 +272,7 @@
           return;
         }
       }
-      
+
       // Default: load project selection
       htmx.ajax('GET', '/api/projects', {
         target: '#main-content',
@@ -234,11 +282,11 @@
         }
       });
     }
-    
+
     // Show welcome screen for non-authenticated users
     function showWelcomeScreen() {
       const mainContent = document.getElementById('main-content');
-      
+
       mainContent.innerHTML = `
         <div class="flex flex-col items-center justify-center h-64">
           <h1 class="text-2xl font-bold mb-4">Welcome to Speckle Model Checker</h1>
@@ -249,26 +297,26 @@
         </div>
       `;
     }
-    
+
     // Show toast notification
     function showToast(message, isError = false) {
       const toast = document.createElement('div');
       toast.className = `toast ${isError ? 'error' : ''}`;
       toast.textContent = message;
       document.getElementById('toast-container').appendChild(toast);
-      
+
       // Remove toast after animation completes
       setTimeout(() => {
         toast.remove();
       }, 3000);
     }
-    
+
     // Handle URL changes manually
     function navigateTo(url) {
       window.history.pushState(null, '', url);
       loadContentBasedOnUrl(auth.currentUser);
     }
-    
+
     // Copy to clipboard utility
     function copyToClipboard(text) {
       navigator.clipboard.writeText(text).then(() => {
@@ -277,11 +325,11 @@
         showToast('Failed to copy to clipboard', true);
       });
     }
-    
+
     // Listen for auth state changes
     auth.onAuthStateChanged((user) => {
       updateAuthUI(user);
-      
+
       if (user) {
         // Check if we have a return URL from login
         const returnUrl = localStorage.getItem('speckle:auth:returnUrl');
@@ -290,22 +338,22 @@
           window.history.pushState(null, '', returnUrl);
         }
       }
-      
+
       loadContentBasedOnUrl(user);
     });
-    
+
     // Listen for navigation events
     window.addEventListener('popstate', () => {
       loadContentBasedOnUrl(auth.currentUser);
     });
-    
+
     // Close share dialog when clicking outside
     document.getElementById('share-dialog-container').addEventListener('click', (e) => {
       if (e.target === document.getElementById('share-dialog-container')) {
         document.getElementById('share-dialog-container').classList.add('hidden');
       }
     });
-    
+
     // Setup htmx to include Firebase ID token with every request
     document.addEventListener('htmx:configRequest', async (event) => {
       const user = auth.currentUser;
@@ -318,7 +366,7 @@
         }
       }
     });
-    
+
     // Handle successful HTMX requests that should update the URL
     document.addEventListener('htmx:afterOnLoad', (event) => {
       // Check for data-hx-push-url attribute to update URL
@@ -327,9 +375,22 @@
         window.history.pushState(null, '', pushUrl);
       }
     });
-    
+
     // Ensure login button is visible on initial load
     document.addEventListener('DOMContentLoaded', () => {
+      // Handle auth redirect parameters first
+      handleAuthRedirect();
+
+      // Then check if we have a saved token to automatically sign in
+      const savedToken = localStorage.getItem('firebase:authToken');
+      if (savedToken && !auth.currentUser) {
+        auth.signInWithCustomToken(savedToken).catch(error => {
+          console.error('Error signing in with saved token:', error);
+          localStorage.removeItem('firebase:authToken');
+        });
+      }
+
+      // Make sure the login button is visible if not signed in
       const user = auth.currentUser;
       if (!user) {
         document.getElementById('login-button').classList.remove('hidden');
@@ -337,4 +398,5 @@
     });
   </script>
 </body>
+
 </html>

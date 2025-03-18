@@ -8,12 +8,76 @@
     ],
     "rewrites": [
       {
-        "source": "/api/**",
-        "function": "api"
+        "source": "/auth/callback",
+        "function": "callback_handler"
       },
       {
-        "source": "/auth/callback",
-        "destination": "/auth-callback.html"
+        "source": "/api/auth/init",
+        "function": "init_auth_fn"
+      },
+      {
+        "source": "/api/auth/token",
+        "function": "token_exchange_fn"
+      },
+      {
+        "source": "/api/projects",
+        "function": "get_projects_fn"
+      },
+      {
+        "source": "/api/projects/:projectId",
+        "function": "get_project_details_fn"
+      },
+      {
+        "source": "/api/rulesets/new",
+        "function": "get_new_ruleset_form_fn"
+      },
+      {
+        "source": "/api/rulesets",
+        "function": "create_ruleset_fn"
+      },
+      {
+        "source": "/api/rulesets/:rulesetId",
+        "function": "update_ruleset_fn"
+      },
+      {
+        "source": "/api/rulesets/:rulesetId/edit",
+        "function": "get_ruleset_fn"
+      },
+      {
+        "source": "/api/rulesets/:rulesetId/share",
+        "function": "get_share_dialog_fn"
+      },
+      {
+        "source": "/api/rulesets/:rulesetId/toggle-sharing",
+        "function": "toggle_sharing_fn"
+      },
+      {
+        "source": "/api/rulesets/:rulesetId/export",
+        "function": "export_ruleset_fn"
+      },
+      {
+        "source": "/api/rulesets/:rulesetId/rules",
+        "function": "get_rules_fn"
+      },
+      {
+        "source": "/api/rulesets/:rulesetId/rules/new",
+        "function": "get_new_rule_form_fn"
+      },
+      {
+        "source": "/api/rulesets/:rulesetId/rules/:ruleIndex",
+        "function": "update_rule_fn"
+      },
+      {
+        "source": "/api/rulesets/:rulesetId/rules/:ruleIndex/edit",
+        "function": "get_edit_rule_form_fn"
+      },
+      {
+        "source": "/api/rulesets/:rulesetId/condition-row/:index",
+        "function": "get_condition_row_fn"
+      },
+      {
+        "source": "/api/shared-rule-sets/:rulesetId",
+        "function": "get_shared_ruleset_fn"
       },
       {
         "source": "**",
@@ -23,7 +87,7 @@
   },
   "functions": {
     "source": "functions",
-    "runtime": "python310",
+    "runtime": "python311",
     "ignore": [
       ".git",
       ".github",
@@ -34,7 +98,7 @@
       "**/node_modules/**",
       "**/__pycache__/**",
       "**/.pytest_cache/**",
-      "**/venv/**"
+      "**/venv/**" 
     ]
   },
   "firestore": {

@@ -16,14 +16,14 @@ async def get_rulesets_for_project(user_id, project_id):
     
     # Query Firestore for rulesets matching both user and project
     query = db.collection('ruleSets').where(
-        filter=firestore.AndFilter([
-            firestore.FieldFilter('userId', '==', user_id),
-            firestore.FieldFilter('projectId', '==', project_id)
+        filter=firestore.and_filter([
+            firestore.field_filter('userId', '==', user_id),
+            firestore.field_filter('projectId', '==', project_id)
         ])
     ).order_by('updatedAt', direction=firestore.Query.DESCENDING)
     
     # Execute query
-    ruleset_docs = await query.get()
+    ruleset_docs = query.get()
     
     # Format results
     rulesets = []
@@ -72,10 +72,10 @@ async def create_ruleset(user_id, project_id, name, description=''):
     }
     
     # Add to Firestore
-    ruleset_ref = await db.collection('ruleSets').add(ruleset)
+    ruleset_ref = db.collection('ruleSets').add(ruleset)
     
     # Get the created document
-    ruleset_doc = await ruleset_ref.get()
+    ruleset_doc = ruleset_ref.get()
     result = ruleset_doc.to_dict()
     result['id'] = ruleset_doc.id
     
@@ -100,7 +100,7 @@ async def get_ruleset(ruleset_id):
     db = firestore.client()
     
     # Get the document
-    ruleset_doc = await db.collection('ruleSets').document(ruleset_id).get()
+    ruleset_doc = db.collection('ruleSets').document(ruleset_id).get()
     
     if not ruleset_doc.exists:
         return None
@@ -133,7 +133,7 @@ async def update_ruleset(ruleset_id, data):
     update_data['updatedAt'] = firestore.SERVER_TIMESTAMP
     
     # Update document
-    await db.collection('ruleSets').document(ruleset_id).update(update_data)
+    db.collection('ruleSets').document(ruleset_id).update(update_data)
     
     return True
 
@@ -150,7 +150,7 @@ async def delete_ruleset(ruleset_id):
     db = firestore.client()
     
     # Delete document
-    await db.collection('ruleSets').document(ruleset_id).delete()
+    db.collection('ruleSets').document(ruleset_id).delete()
     
     return True
 
@@ -167,7 +167,7 @@ async def toggle_ruleset_sharing(ruleset_id):
     db = firestore.client()
     
     # Get current status
-    ruleset_doc = await db.collection('ruleSets').document(ruleset_id).get()
+    ruleset_doc = db.collection('ruleSets').document(ruleset_id).get()
     if not ruleset_doc.exists:
         return False
     
@@ -185,7 +185,7 @@ async def toggle_ruleset_sharing(ruleset_id):
         update_data['sharedAt'] = firestore.SERVER_TIMESTAMP
     
     # Update document
-    await db.collection('ruleSets').document(ruleset_id).update(update_data)
+    db.collection('ruleSets').document(ruleset_id).update(update_data)
     
     return is_shared
 
@@ -202,7 +202,7 @@ async def get_shared_ruleset(ruleset_id):
     db = firestore.client()
     
     # Get the document
-    ruleset_doc = await db.collection('ruleSets').document(ruleset_id).get()
+    ruleset_doc = db.collection('ruleSets').document(ruleset_id).get()
     
     if not ruleset_doc.exists:
         return None

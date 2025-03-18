@@ -1,0 +1,94 @@
+<div class="bg-white rounded-lg shadow p-6">
+  <div class="flex justify-between items-center mb-6">
+      <div>
+          <h2 class="text-xl font-semibold">{{ ruleset.name }}</h2>
+          {% if ruleset.description %}
+              <p class="text-gray-600">{{ ruleset.description }}</p>
+          {% endif %}
+      </div>
+      
+      <div class="flex items-center space-x-2">
+          <button
+              class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+              hx-get="/api/projects/{{ ruleset.projectId }}"
+              hx-target="#main-content">
+              Back to Project
+          </button>
+          
+          <button
+              class="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
+              hx-get="/api/rulesets/{{ ruleset.id }}/share"
+              hx-target="#share-dialog-container">
+              Share
+          </button>
+          
+          <button
+              class="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700"
+              hx-get="/api/rulesets/{{ ruleset.id }}/export">
+              Export
+          </button>
+      </div>
+  </div>
+  
+  <div class="mb-6">
+      <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-medium">Rules</h3>
+          <button 
+              class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 flex items-center"
+              hx-get="/api/rulesets/{{ ruleset.id }}/rules/new"
+              hx-target="#rule-form-container"
+              hx-swap="innerHTML">
+              <span class="htmx-indicator mr-2">
+                  <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+              </span>
+              Add New Rule
+          </button>
+      </div>
+      
+      <!-- Rule form container -->
+      <div id="rule-form-container" class="mb-6"></div>
+      
+      <!-- Rules container -->
+      <div id="rules-container" hx-get="/api/rulesets/{{ ruleset.id }}/rules" hx-trigger="load">
+          <div class="flex justify-center">
+              <svg class="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+          </div>
+      </div>
+  </div>
+  
+  <div>
+      <h3 class="text-lg font-medium mb-4">Edit Rule Set</h3>
+      
+      <form 
+          hx-put="/api/rulesets/{{ ruleset.id }}" 
+          hx-target="#main-content" 
+          class="space-y-4 max-w-lg">
+          
+          <div>
+              <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Rule Set Name</label>
+              <input type="text" id="name" name="name" value="{{ ruleset.name }}"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+                  required>
+          </div>
+          
+          <div>
+              <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <textarea id="description" name="description" rows="3"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary">{{ ruleset.description or '' }}</textarea>
+          </div>
+          
+          <div>
+              <button type="submit"
+                  class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark">
+                  Save Changes
+              </button>
+          </div>
+      </form>
+  </div>
+</div>

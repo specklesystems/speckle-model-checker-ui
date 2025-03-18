@@ -1,0 +1,55 @@
+<div class="condition-row grid grid-cols-4 gap-3 items-end">
+  <div>
+      <label class="block text-xs text-gray-500 mb-1">Logic</label>
+      <select name="conditions[{{ index }}][logic]" 
+          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+          <option value="WHERE" {% if index == 0 %}selected{% endif %}>WHERE</option>
+          <option value="AND" {% if index > 0 %}selected{% endif %}>AND</option>
+          <option value="OR">OR</option>
+          <option value="CHECK">CHECK</option>
+      </select>
+  </div>
+  
+  <div>
+      <label class="block text-xs text-gray-500 mb-1">Property</label>
+      <input type="text" name="conditions[{{ index }}][propertyName]" 
+          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+          placeholder="e.g. speckle_type" required>
+  </div>
+  
+  <div>
+      <label class="block text-xs text-gray-500 mb-1">Predicate</label>
+      <select name="conditions[{{ index }}][predicate]" 
+          class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+          <option value="==">equals (==)</option>
+          <option value="!=">not equals (!=)</option>
+          <option value=">">greater than (>)</option>
+          <option value="<">less than (<)</option>
+          <option value=">=">greater than or equal (>=)</option>
+          <option value="<=">less than or equal (<=)</option>
+          <option value="contains">contains</option>
+          <option value="not contains">not contains</option>
+          <option value="starts with">starts with</option>
+          <option value="ends with">ends with</option>
+      </select>
+  </div>
+  
+  <div class="flex items-end space-x-2">
+      <div class="flex-1">
+          <label class="block text-xs text-gray-500 mb-1">Value</label>
+          <input type="text" name="conditions[{{ index }}][value]" 
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              placeholder="e.g. Wall" required>
+      </div>
+      
+      <button type="button" 
+          class="px-2 py-2 text-red-600 hover:text-red-800"
+          hx-delete="/api/rulesets/{{ ruleset_id }}/condition-row/{{ index }}"
+          hx-target="closest .condition-row"
+          hx-swap="outerHTML">
+          <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+          </svg>
+      </button>
+  </div>
+</div>
