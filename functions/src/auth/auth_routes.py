@@ -352,3 +352,42 @@ def exchange_token(request):
         return https_fn.Response(
             json.dumps({"error": str(e)}), mimetype="application/json", status=500
         )
+
+"""
+This Cloud Function uses Firebase Admin SDK with secure credentials loaded 
+from Google Secret Manager at runtime.
+
+Why this setup:
+- The Firebase Admin SDK requires a private key to sign custom tokens.
+- In local dev, we load from a service account JSON file.
+- In production, Cloud Functions environments don't allow secure file bundling, 
+  and relying on ADC often triggers IAM signBlob calls with permission issues.
+- To avoid this, we store the service account JSON in Secret Manager.
+
+Setup steps for future deployments:
+1. Create the secret:
+   gcloud secrets create firebase-service-account-key \
+     --data-file=service-account-file.json
+
+2. Grant secret access to the Cloud Function's service account:
+   gcloud secrets add-iam-policy-binding firebase-service-account-key \
+     --member="serviceAccount:554830443409-compute@developer.gserviceaccount.com" \
+     --role="roles/secretmanager.secretAccessor"
+
+3. Ensure google-cloud-secret-manager is in requirements.txt:
+   pip install google-cloud-secret-manager
+   pip freeze > requirements.txt
+
+4. In code, load the credentials from Secret Manager (see load_firebase_cred_from_secret function).
+
+5. Redeploy:
+   gcloud functions deploy <function_name> \
+     --region=us-central1 \
+     --runtime=python311 \
+     --trigger-http \
+     --allow-unauthenticated \
+     --set-env-vars=SPECKLE_APP_ID=...,SPECKLE_APP_SECRET=...,SPECKLE_CHALLENGE_ID=...,SPECKLE_SERVER_URL=...
+
+Result:
+- Secure, permission-clean, local and production token creation works without additional IAM complexity.
+"""

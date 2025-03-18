@@ -1,16 +1,30 @@
 from firebase_functions import https_fn, options
 import firebase_admin
-from firebase_admin import firestore
+from firebase_admin import firestore, credentials
+import json
 import logging
 
 from flask import Request
+
+from google.cloud import secretmanager
+
+def load_firebase_cred_from_secret():
+    client = secretmanager.SecretManagerServiceClient()
+    secret_name = "projects/speckle-model-checker/secrets/firebase-service-account-key/versions/latest"
+    response = client.access_secret_version(name=secret_name)
+    secret_payload = response.payload.data.decode("UTF-8")
+    cred_info = json.loads(secret_payload)
+    return credentials.Certificate(cred_info)
+
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
 # Initialize Firebase (only if not already initialized)
 if not firebase_admin._apps:
-    firebase_admin.initialize_app()
+    cred = load_firebase_cred_from_secret()
+    firebase_admin.initialize_app(cred)
 
 # Import all function modules
 from src.auth.auth_routes import init_speckle_auth, exchange_token, get_user
