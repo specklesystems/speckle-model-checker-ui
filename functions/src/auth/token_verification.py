@@ -1,7 +1,7 @@
-from firebase_functions import https_fn
+from functools import wraps
 from firebase_admin import auth
 import json
-from functools import wraps
+from firebase_functions import https_fn
 
 def verify_firebase_token(func):
     """
@@ -9,8 +9,8 @@ def verify_firebase_token(func):
     Adds user_id and user_email to the request object.
     """
     @wraps(func)
-    async def wrapper(request, *args, **kwargs):
-        # Extract token from Authorization header
+    def wrapper(request, *args, **kwargs):
+
         auth_header = request.headers.get('Authorization', '')
         
         if not auth_header.startswith('Bearer '):
@@ -23,15 +23,10 @@ def verify_firebase_token(func):
         token = auth_header.split('Bearer ')[1]
         
         try:
-            # Verify the token
             decoded_token = auth.verify_id_token(token)
-            
-            # Add user info to the request
             request.user_id = decoded_token['uid']
             request.user_email = decoded_token.get('email')
-            
-            # Continue to the handler function
-            return await func(request, *args, **kwargs)
+            return func(request, *args, **kwargs)
         
         except auth.InvalidIdTokenError:
             return https_fn.Response(
@@ -50,6 +45,5 @@ def verify_firebase_token(func):
                 json.dumps({"error": f"Unauthorized - {str(e)}"}),
                 mimetype="application/json",
                 status=401
-            )
-    
+      )
     return wrapper

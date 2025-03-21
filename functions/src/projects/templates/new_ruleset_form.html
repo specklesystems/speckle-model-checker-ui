@@ -1,37 +1,31 @@
 <div class="bg-white rounded-lg shadow p-6 max-w-2xl mx-auto">
   <h2 class="text-xl font-semibold mb-4">Create New Rule Set for {{ project_name }}</h2>
-  
-  <form hx-post="/api/rulesets" 
-      hx-target="#main-content" 
-      hx-swap="outerHTML" 
-      class="space-y-4">
-      
-      <input type="hidden" name="projectId" value="{{ project_id }}">
-      
-      <div>
-          <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Rule Set Name</label>
-          <input type="text" id="name" name="name" 
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-              required>
-      </div>
-      
-      <div>
-          <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
-          <textarea id="description" name="description" rows="3"
-              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"></textarea>
-      </div>
-      
-      <div class="flex justify-between">
-          <button type="button" 
-              class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-              hx-get="/api/projects/{{ project_id }}" 
-              hx-target="#main-content">
-              Cancel
-          </button>
-          <button type="submit" 
-              class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark">
-              Create Rule Set
-          </button>
-      </div>
+
+  <form onsubmit="return createRuleSet('/api/rulesets','#main-content' ,event)" class="space-y-4">
+
+    <input type="hidden" name="projectId" value="{{ project_id }}">
+
+    <div>
+      <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Rule Set Name</label>
+      <input type="text" id="name" name="name"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+        required>
+    </div>
+
+    <div>
+      <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+      <textarea id="description" name="description" rows="3"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"></textarea>
+    </div>
+
+    <div class="flex justify-between">
+      <button type="button" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+        onclick="getProjectRulesets('{{ project_id }}', '#main-content', event )">
+        Cancel
+      </button>
+      <button type="submit" class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark">
+        Create Rule Set
+      </button>
+    </div>
   </form>
 </div>

@@ -1,6 +1,7 @@
 from firebase_functions import https_fn
 import firebase_admin
-from firebase_admin import auth, firestore
+from firebase_admin import auth
+from google.cloud import firestore
 from jinja2 import Template
 import json
 import uuid
@@ -13,6 +14,8 @@ import string
 
 import os
 
+# Verify challenge exists and hasn't been used
+db = firestore.Client()
 
 # Get Speckle configuration from environment
 def get_speckle_config():
@@ -151,7 +154,6 @@ def get_user(request):
             )
 
         # Store Speckle tokens in Firestore
-        db = firestore.client()
         db.collection("userTokens").document(firebase_user.uid).set(
             {
                 "speckleId": user["id"],
@@ -205,8 +207,6 @@ def exchange_token(request):
                 status=400,
             )
 
-        # Verify challenge exists and hasn't been used
-        db = firestore.client()
 
         # Exchange access code for Speckle token
         speckle_config = get_speckle_config()

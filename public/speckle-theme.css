@@ -1,3 +1,15 @@
+
+@font-face {
+  font-family: 'Inter';
+  src: url('inter-latin.DDPelQgH.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+}
+
 /* Styles from Image.CSSAflEj.css */
 .lds-ripple {
   display: inline-block;

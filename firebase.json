@@ -17,10 +17,10 @@
       },
       {
         "source": "/api/projects",
-        "function": "get_projects_fn"
+        "function": "get_user_projects_fn"
       },
       {
-        "source": "/api/projects/:projectId",
+        "source": "/api/projects/*",
         "function": "get_project_details_fn"
       },
       {
@@ -32,47 +32,51 @@
         "function": "create_ruleset_fn"
       },
       {
-        "source": "/api/rulesets/:rulesetId",
-        "function": "update_ruleset_fn"
-      },
-      {
-        "source": "/api/rulesets/:rulesetId/edit",
-        "function": "get_ruleset_fn"
-      },
-      {
-        "source": "/api/rulesets/:rulesetId/share",
-        "function": "get_share_dialog_fn"
-      },
-      {
-        "source": "/api/rulesets/:rulesetId/toggle-sharing",
-        "function": "toggle_sharing_fn"
-      },
-      {
-        "source": "/api/rulesets/:rulesetId/export",
-        "function": "export_ruleset_fn"
-      },
-      {
-        "source": "/api/rulesets/:rulesetId/rules",
-        "function": "get_rules_fn"
-      },
-      {
-        "source": "/api/rulesets/:rulesetId/rules/new",
+        "source": "/api/rulesets/*/rules/new",
         "function": "get_new_rule_form_fn"
       },
       {
-        "source": "/api/rulesets/:rulesetId/rules/:ruleIndex",
+        "source": "/api/rulesets/*/delete",
+        "function": "delete_ruleset_fn"
+      },
+      {
+        "source": "/api/rulesets/*/edit",
+        "function": "get_ruleset_fn"
+      },
+      {
+        "source": "/api/rulesets/*/share",
+        "function": "get_share_dialog_fn"
+      },
+      {
+        "source": "/api/rulesets/*/toggle-sharing",
+        "function": "toggle_sharing_fn"
+      },
+      {
+        "source": "/api/rulesets/*/export",
+        "function": "export_ruleset_fn"
+      },
+      {
+        "source": "/api/rulesets/*/rules",
+        "function": "get_rules_fn"
+      },
+      {
+        "source": "/api/rulesets/*/rules/*",
         "function": "update_rule_fn"
       },
       {
-        "source": "/api/rulesets/:rulesetId/rules/:ruleIndex/edit",
+        "source": "/api/rulesets/*/rules/*/edit",
         "function": "get_edit_rule_form_fn"
       },
       {
-        "source": "/api/rulesets/:rulesetId/condition-row/:index",
+        "source": "/api/rulesets/*/rules/*/condition-row/*",
         "function": "get_condition_row_fn"
       },
       {
-        "source": "/api/shared-rule-sets/:rulesetId",
+        "source": "/api/rulesets/*",
+        "function": "get_ruleset_fn"
+      },
+      {
+        "source": "/api/shared-rule-sets/*",
         "function": "get_shared_ruleset_fn"
       },
       {

@@ -1,6 +1,6 @@
-# Speckle Model Checker UI
+# Model Checker UI
 
-A web-based interface for creating, managing, and sharing rule sets for the Speckle Model Checker.
+A web-based interface for creating, managing, and sharing rule sets for the Model Checker.
 
 ## Overview
 

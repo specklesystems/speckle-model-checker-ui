@@ -4,20 +4,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Speckle Model Checker - Rule Editor</title>
+  <title>Model Checker - Rule Editor</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/2.0.4/htmx.min.js"
     integrity="sha512-2kIcAizYXhIn8TzUvqzEDZNuDZ+aW7yE/+f1HJHXFjQcGNfv1kqzJSTBRBSlOgp6B/KZsz1K0a3ZTqP9dnxioQ=="
     crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
-  <script src="fbconfig.js"></script>
+  <script src="/fbconfig.js"></script>
 
   <!-- Tailwind CSS -->
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link href="speckle-theme.css" rel="stylesheet">
+  <link href="/speckle-theme.css" rel="stylesheet">
   <link href="https://rsms.me/inter/inter.css" rel="stylesheet">
-  <link href="htmx-styles.css" rel="stylesheet">
+  <link href="/htmx-styles.css" rel="stylesheet">
 
   <style>
     .htmx-indicator {
@@ -33,37 +33,74 @@
 
 <body class="bg-foundation-page text-foreground has-[.viewer-transparent]:!bg-transparent">
   <!-- Fixed Navbar -->
-  <nav class="fixed z-40 top-0 w-full min-h-14 bg-foundation border-b border-outline-2 shadow-md">
+  <!-- Updated Navigation with Dropdown Menus -->
+  <nav class="fixed z-40 top-0 w-full min-h-14 bg-white border-b border-outline-2 shadow-md bg-opacity-75">
     <div class="flex gap-4 items-center justify-between h-full w-screen px-6 py-3 sm:flex-nowrap flex-wrap">
       <!-- Left: Speckle Logo -->
       <a href="/" class="flex items-center">
         <img src="/img/speckle-logo.png" alt="Speckle Logo" class="h-8">
-        <span class="text-sm font-medium text-foreground ml-3">Speckle Model Checker</span>
+        <span class="text-sm font-medium text-foreground ml-3">Model Checker</span>
       </a>
 
       <!-- Right: Auth Container -->
       <div id="auth-container" class="flex items-center space-x-4 shrink-0">
+
         <div class="htmx-indicator">
-          <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none"
+          <svg class="animate-spin h-5 w-5" style="color: #3B82F6;" xmlns="http://www.w3.org/2000/svg" fill="none"
             viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="#3B82F6" stroke-width="4"></circle>
+            <path class="opacity-75" fill="#3B82F6" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
           </svg>
         </div>
 
-        <!-- User Display (initially hidden) -->
-        <div id="user-profile" class="hidden flex items-center space-x-2">
-          <img id="user-avatar" src="https://avatar.iran.liara.run/public" class="w-8 h-8 rounded-full">
-          <span id="user-name" class="text-sm font-medium"></span>
-          <button class="px-3 py-1 bg-white text-primary rounded hover:bg-secondary text-sm" onclick="signOut()">Sign
-            Out</button>
+        <!-- User Profile Dropdown (for logged in users) -->
+        <div id="user-profile" class="hidden relative">
+          <button id="user-dropdown-btn" class="flex items-center space-x-2 focus:outline-none"
+            onclick="toggleUserDropdown()">
+            <img id="user-avatar" src="https://avatar.iran.liara.run/public" class="w-8 h-8 rounded-full">
+            <span id="user-name" class="text-sm font-medium hidden"></span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div id="user-dropdown-menu"
+            class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden">
+            <div class="px-4 py-2 border-b border-gray-200">
+              <p id="dropdown-user-name" class="text-sm font-medium truncate"></p>
+              <p id="dropdown-user-email" class="text-xs text-gray-500 truncate"></p>
+            </div>
+            <!-- <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+            <a href="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Settings</a> -->
+            <button onclick="signOut()" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+              Sign Out
+            </button>
+          </div>
         </div>
 
-        <!-- Login Button (initially hidden) -->
-        <button id="login-button" class="hidden px-4 py-2 bg-white text-primary rounded hover:bg-primary shrink-0"
-          onclick="signInToSpeckle()">
-          Sign In with Speckle
-        </button>
+        <!-- Sign In Dropdown (for logged out users) -->
+        <div id="login-container" class="hidden relative">
+          <button id="login-dropdown-btn" class="flex items-center space-x-2 focus:outline-none"
+            onclick="toggleLoginDropdown()">
+            <!-- <span id="user-name">A</span> -->
+            <img id="user-avatar" src="https://avatar.iran.liara.run/public" class="w-8 h-8 rounded-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div id="login-dropdown-menu"
+            class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden">
+            <button onclick="signInToSpeckle()"
+              class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+              <div class="flex items-center">
+                <img src="/img/speckle-logo.png" alt="Speckle" class="h-5 w-5 mr-2">
+                Sign in with Speckle
+              </div>
+            </button>
+            <!-- Can add other sign-in methods here if needed -->
+          </div>
+        </div>
       </div>
     </div>
   </nav>
@@ -98,13 +135,18 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
+    let currentFirebaseToken = null;
 
     // Authentication utilities
     async function signInToSpeckle() {
       try {
         // Show loading indicator
-        document.getElementById('login-button').classList.add('hidden');
+        document.getElementById('login-container').classList.add('hidden');
         document.querySelector('.htmx-indicator').classList.remove('hidden');
+        document.querySelector('.htmx-indicator').classList.add('active');
+
+        // Close dropdown menu if open
+        document.getElementById('login-dropdown-menu').classList.add('hidden');
 
         // Initialize authentication with the server
         const response = await fetch('/api/auth/init');
@@ -120,6 +162,9 @@
         localStorage.setItem('speckle:auth:appSecret', authData.appSecret);
         localStorage.setItem('speckle:auth:authUrl', authData.authUrl);
 
+        // Save the current URL for after login
+        localStorage.setItem('speckle:auth:returnUrl', window.location.pathname + window.location.search);
+
         // Redirect to Speckle authentication
         window.location.href = authData.authUrl;
       } catch (error) {
@@ -127,26 +172,29 @@
         showToast('Failed to initialize login process. Please try again.', true);
 
         // Reset auth container
-        document.getElementById('login-button').classList.remove('hidden');
+        document.getElementById('login-container').classList.remove('hidden');
         document.querySelector('.htmx-indicator').classList.add('hidden');
+        document.querySelector('.htmx-indicator').classList.remove('active');
       }
     }
 
     function signOut() {
+      // Close dropdown menu if open
+      document.getElementById('user-dropdown-menu').classList.add('hidden');
+
       auth.signOut().then(() => {
         // Clear any local storage items related to auth
         localStorage.removeItem("speckle:auth:challengeId");
         localStorage.removeItem("speckle:auth:returnUrl");
+        localStorage.removeItem("speckle:auth:appId");
+        localStorage.removeItem("speckle:auth:appSecret");
+        localStorage.removeItem("speckle:auth:authUrl");
+        localStorage.removeItem("speckle:auth:token");
+        localStorage.removeItem("speckle:auth:refreshToken");
 
         // Update UI
         document.getElementById('user-profile').classList.add('hidden');
-        document.getElementById('login-button').classList.remove('hidden');
-
-        auth.signOut().then(function () {
-          console.log('Signed Out');
-        }, function (error) {
-          console.error('Sign Out Error', error);
-        });
+        document.getElementById('login-container').classList.remove('hidden');
 
         // Clear main content and show welcome screen
         showWelcomeScreen();
@@ -156,32 +204,92 @@
       });
     }
 
+    // Enhanced dropdown UI functions
+    function toggleUserDropdown() {
+      const dropdown = document.getElementById('user-dropdown-menu');
+      const button = document.getElementById('user-dropdown-btn');
+      const arrow = button.querySelector('svg');
+
+      const isOpen = !dropdown.classList.contains('hidden');
+
+      // Toggle the dropdown
+      dropdown.classList.toggle('hidden');
+
+      // Toggle arrow rotation
+      if (isOpen) {
+        arrow.classList.remove('rotate-180');
+      } else {
+        arrow.classList.add('rotate-180');
+      }
+
+      // Ensure login dropdown is closed
+      document.getElementById('login-dropdown-menu')?.classList.add('hidden');
+      document.getElementById('login-dropdown-btn')?.querySelector('svg')?.classList.remove('rotate-180');
+    }
+
+    function toggleLoginDropdown() {
+      const dropdown = document.getElementById('login-dropdown-menu');
+      const button = document.getElementById('login-dropdown-btn');
+      const arrow = button.querySelector('svg');
+
+      const isOpen = !dropdown.classList.contains('hidden');
+
+      // Toggle the dropdown
+      dropdown.classList.toggle('hidden');
+
+      // Toggle arrow rotation
+      if (isOpen) {
+        arrow.classList.remove('rotate-180');
+      } else {
+        arrow.classList.add('rotate-180');
+      }
+
+      // Ensure user dropdown is closed
+      document.getElementById('user-dropdown-menu')?.classList.add('hidden');
+      document.getElementById('user-dropdown-btn')?.querySelector('svg')?.classList.remove('rotate-180');
+    }
+
     // Update UI based on auth state
     function updateAuthUI(user) {
-      // Hide the loading indicator
-      document.querySelector('.htmx-indicator').classList.add('hidden');
+
 
       if (user) {
         // User is signed in
-        document.getElementById('login-button').classList.add('hidden');
+        document.getElementById('login-container').classList.add('hidden');
         document.getElementById('user-profile').classList.remove('hidden');
 
-        // Update user info
-        document.getElementById('user-name').textContent = user.displayName || user.email;
+        // Update user info in both places
+        const userName = user.displayName || 'User';
+        const userEmail = user.email || '';
+
+        document.getElementById('user-name').textContent = userName;
+        document.getElementById('dropdown-user-name').textContent = userName;
+        document.getElementById('dropdown-user-email').textContent = userEmail;
+
         if (user.photoURL) {
           document.getElementById('user-avatar').src = user.photoURL;
         }
       } else {
         // User is signed out
         document.getElementById('user-profile').classList.add('hidden');
-        document.getElementById('login-button').classList.remove('hidden');
+        // document.getElementById('login-container').classList.remove('hidden');
+
+        // Close any open dropdowns
+        document.getElementById('user-dropdown-menu').classList.add('hidden');
+        document.getElementById('login-dropdown-menu').classList.add('hidden');
       }
+      // Hide the loading indicator
+      document.querySelector('.htmx-indicator').classList.add('hidden');
+      document.querySelector('.htmx-indicator').classList.remove('active');
     }
 
-    // Process the authentication callback
+    // Process authentication callback
     async function processAuthCallback() {
-
+      // Show loading indicator
+      document.querySelector('.htmx-indicator').classList.remove('hidden');
+      document.querySelector('.htmx-indicator').classList.add('active');
       try {
+
         // Get URL parameters and stored challenge ID
         const params = new URLSearchParams(window.location.search);
         const accessCode = params.get("access_code");
@@ -190,13 +298,14 @@
         const authUrl = localStorage.getItem("speckle:auth:authUrl");
         const appSecret = localStorage.getItem("speckle:auth:appSecret");
 
-
         if (!accessCode || !challengeId) {
           throw new Error("Missing authentication parameters");
         }
-        // serverUrl is authUrl after the domain
+
+        // Extract the server URL from the auth URL
         const serverUrl = authUrl.split("/").slice(0, 3).join("/");
 
+        // Exchange access code for token
         const response = await fetch(`${serverUrl}/auth/token`, {
           method: "POST",
           headers: {
@@ -217,13 +326,17 @@
 
         const authData = await response.json();
 
+        // Store tokens
         localStorage.setItem("speckle:auth:token", authData.token);
         localStorage.setItem("speckle:auth:refreshToken", authData.refreshToken);
+
+        // Clean up auth parameters
         localStorage.removeItem("speckle:auth:challengeId");
         localStorage.removeItem("speckle:auth:appId");
         localStorage.removeItem("speckle:auth:appSecret");
         localStorage.removeItem("speckle:auth:authUrl");
 
+        // Get user info from server
         const userResponse = await fetch('/api/auth/users', {
           method: 'POST',
           headers: { "Accept": "application/json", "Content-Type": "application/json" },
@@ -234,33 +347,34 @@
           throw new Error('Failed to get user information');
         }
 
-        // Update  status
-        showToast("Authentication successful!", false);
-
         const userData = await userResponse.json();
-        console.log(`User data: ${JSON.stringify(userData, null, 2)}`);
 
         // Sign in with the custom token
-        auth.signInWithCustomToken(userData.customToken)
-          .then(() => {
-            console.log('Successfully signed in with custom token');
-            showToast('Successfully signed in');
-          })
-          .catch((error) => {
-            console.error('Error signing in with custom token:', error);
-            showToast('Failed to sign in with the provided token', true);
-          });
-        
-        // Clean up URL without page reload by removing the query parameters
+        await auth.signInWithCustomToken(userData.customToken);
+        console.log('Successfully signed in with custom token');
+        showToast('Successfully signed in');
+
+        // Clean up URL without page reload
         const cleanUrl = window.location.pathname + window.location.hash;
         window.history.replaceState({}, document.title, cleanUrl);
+
+        // Refresh content based on new auth state
+        loadContentBasedOnUrl(auth.currentUser);
+
+        // Hide loading indicator
+        document.querySelector('.htmx-indicator').classList.add('hidden');
+        document.querySelector('.htmx-indicator').classList.remove('active');
 
       } catch (error) {
         // Handle errors
         console.error("Authentication error:", error);
-        authStatusMessage.textContent = "Authentication failed";
-        authErrorMessage.textContent = error.message;
-        authErrorContainer.classList.remove('hidden');
+        showToast('Authentication failed: ' + error.message, true);
+
+      } finally {
+        // Reset auth container
+        // document.getElementById('login-container').classList.remove('hidden');
+        document.querySelector('.htmx-indicator').classList.add('hidden');
+        document.querySelector('.htmx-indicator').classList.remove('active');
 
       }
     }
@@ -334,54 +448,286 @@
       if (path.startsWith('/rulesets/')) {
         const ruleSetId = path.split('/').pop();
         if (ruleSetId) {
-          // Load the specific ruleset
-          htmx.ajax('GET', `/api/rulesets/${ruleSetId}/edit`, {
-            target: '#main-content',
-            swap: 'innerHTML',
-            headers: {
-              'Authorization': `Bearer ${user.uid}`
-            }
+          firebase.auth().currentUser.getIdToken(true).then((idToken) => {
+            currentFirebaseToken = idToken;
+
+            setTimeout(() => {
+              fetch(`/api/rulesets/${ruleSetId}`, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${idToken}`
+                }
+              })
+                .then(response => response.text())
+                .then(html => {
+                  document.querySelector('#main-content').innerHTML = html;
+                  // Optionally push to history if you're navigating programmatically
+                  history.pushState({}, '', `/rulesets/${ruleSetId}`);
+                })
+                .catch((error) => console.error("Fetch error:", error));
+            }, 200);
           });
+
           return;
         }
       }
 
       // Check for specific project URLs
-      if (path.startsWith('/projects/')) {
+      if (path.startsWith('/project/')) {
         const projectId = path.split('/').pop();
         if (projectId) {
-          // Load the specific project
-          htmx.ajax('GET', `/api/projects/${projectId}`, {
-            target: '#main-content',
-            swap: 'innerHTML',
-            headers: {
-              'Authorization': `Bearer ${user.uid}`
-            }
-          });
+          // Load the project details
+          getProjectRulesets(projectId, '#main-content');
           return;
         }
       }
 
-      // Default: load project selection
-      htmx.ajax('GET', '/api/projects', {
-        target: '#main-content',
-        swap: 'innerHTML',
-        headers: {
-          'Authorization': `Bearer ${user.uid}`
-        }
+
+
+      goToProjects();
+
+    }
+
+    function editRuleset(url, targetSelector, event) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+
+      firebase.auth().currentUser.getIdToken(true).then((idToken) => {
+        currentFirebaseToken = idToken;
+
+        setTimeout(() => {
+          fetch(url, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${idToken}`
+            }
+          })
+            .then(response => response.text())
+            .then(html => {
+              console.log('Editing ruleset:', html);
+              document.querySelector(targetSelector).innerHTML = html;
+              const container = document.querySelector('#ruleset-container');
+              const rulesetId = container.dataset.rulesetId;
+              history.pushState({}, '', `/rulesets/${rulesetId}`);
+            })
+            .catch(error => console.error("Fetch error:", error));
+        }, 200);
+
+      }).catch((error) => {
+        console.error("Error getting Firebase ID token:", error);
       });
     }
+
+
+
+
+
+
+    function deleteRuleset(url, targetSelector, event) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+
+      firebase.auth().currentUser.getIdToken(true).then((idToken) => {
+        currentFirebaseToken = idToken;
+
+        console.log('Deleting ruleset', url, targetSelector);
+        setTimeout(() => {
+          fetch(url, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${idToken}`
+            }
+          })
+            .then(response => {
+              if (response.status === 204) {
+                document.querySelector(targetSelector).remove();
+              } else {
+                console.error('Error deleting ruleset:', response);
+              }
+            })
+            .catch(error => console.error("Fetch error:", error));
+        }, 200);
+
+      }).catch((error) => {
+        console.error("Error getting Firebase ID token:", error);
+      });
+    }
+
+
+    function createRuleSet(url, targetSelector, event) {
+
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault(); // optional, only if needed
+      }
+
+      const form = event.target;
+      const formData = new FormData(form);
+
+      firebase.auth().currentUser.getIdToken(true).then((idToken) => {
+        currentFirebaseToken = idToken;
+
+        setTimeout(() => {
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${idToken}`
+            },
+            body: formData
+          })
+            .then(response => response.text())
+            .then(html => {
+              document.querySelector(targetSelector).innerHTML = html;
+              const container = document.querySelector('#ruleset-container');
+              const rulesetId = container.dataset.rulesetId;
+              history.pushState({}, '', `/rulesets/${rulesetId}`);
+            });
+        }, 200);
+      });
+      return false;
+    }
+
+    function newRule(url, targetSelector, event) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+
+      }
+
+      firebase.auth().currentUser.getIdToken(true).then((idToken) => {
+        currentFirebaseToken = idToken;
+
+        setTimeout(() => {
+          fetch(url, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${idToken}`
+            }
+          })
+            .then(response => response.text())
+            .then(html => {
+              document.querySelector(targetSelector).innerHTML = html;
+              // hide the button
+              event.target.style.display = 'none';
+            })
+            .catch(error => console.error("Fetch error:", error));
+        }, 200);
+
+      }).catch((error) => {
+        console.error("Error getting Firebase ID token:", error);
+      });
+    }
+
+
+
+    function newRuleSet(url, targetSelector, event) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+
+      firebase.auth().currentUser.getIdToken(true).then((idToken) => {
+        currentFirebaseToken = idToken;
+
+        setTimeout(() => {
+          fetch(url, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${idToken}`
+            }
+          })
+            .then(response => response.text())
+            .then(html => {
+              document.querySelector(targetSelector).innerHTML = html;
+              // Optionally push to browser history if desired
+              // history.pushState({}, '', '/rulesets/new');
+            })
+            .catch(error => console.error("Fetch error:", error));
+        }, 200);
+
+      }).catch((error) => {
+        console.error("Error getting Firebase ID token:", error);
+      });
+    }
+
+
+    function goToProjects(event) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
+      firebase.auth().currentUser.getIdToken(true).then((idToken) => {
+        currentFirebaseToken = idToken;
+
+        setTimeout(() => {
+          fetch('/api/projects', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${idToken}`
+            }
+          })
+            .then(response => response.text())
+            .then(html => {
+              document.querySelector('#main-content').innerHTML = html;
+              // Update browser history
+              history.pushState({}, '', '/projects');
+            })
+            .catch((error) => console.error("Fetch error:", error));
+        }, 200);
+
+      }).catch((error) => {
+        console.error("Error getting Firebase ID token:", error);
+      });
+    }
+
+    function getProjectRulesets(projectId, targetSelector, event) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
+      firebase.auth().currentUser.getIdToken(true).then((idToken) => {
+        currentFirebaseToken = idToken;
+
+        setTimeout(() => {
+          const targetUrl = `/api/projects/${projectId}`;
+
+          fetch(targetUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${idToken}`
+            }
+          })
+            .then(response => response.text())
+            .then(html => {
+              document.querySelector(targetSelector).innerHTML = html;
+              // Update browser history after successful fetch
+              history.pushState({}, '', `/project/${projectId}`);
+            })
+            .catch((error) => console.error("Fetch error:", error));
+        }, 200);
+
+      }).catch((error) => {
+        console.error("Error getting Firebase ID token:", error);
+      });
+    }
+
 
     // Show welcome screen for non-authenticated users
     function showWelcomeScreen() {
       const mainContent = document.getElementById('main-content');
 
       mainContent.innerHTML = `
-        <div class="flex flex-col items-center justify-center h-64">
-          <h1 class="text-2xl font-bold mb-4">Welcome to Speckle Model Checker</h1>
-          <p class="text-secondary mb-6">Sign in with your Speckle account to manage rule sets for your projects.</p>
-          <button onclick="signInToSpeckle()" class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark">
-            Sign In with Speckle
+      <div class="flex flex-col items-center justify-center h-64">
+        <h1 class="text-2xl font-bold mb-4">Welcome to Model Checker</h1>
+        <p class="text-secondary mb-6">Sign in with your Speckle account to manage rule sets for your projects.</p>
+        <button onclick="signInToSpeckle()" class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark">
+          Sign In with Speckle
           </button>
         </div>
       `;
@@ -443,18 +789,18 @@
       }
     });
 
-    // Setup htmx to include Firebase ID token with every request
-    document.addEventListener('htmx:configRequest', async (event) => {
-      const user = auth.currentUser;
-      if (user) {
-        try {
-          const token = await user.getIdToken();
-          event.detail.headers['Authorization'] = `Bearer ${token}`;
-        } catch (error) {
-          console.error("Error getting ID token:", error);
-        }
-      }
-    });
+    // // Setup htmx to include Firebase ID token with every request
+    // document.addEventListener('htmx:configRequest', async (event) => {
+    //   const user = auth.currentUser;
+    //   if (user) {
+    //     try {
+    //       const token = await user.getIdToken();
+    //       event.detail.headers['Authorization'] = `Bearer ${token}`;
+    //     } catch (error) {
+    //       console.error("Error getting ID token:", error);
+    //     }
+    //   }
+    // });
 
     // Handle successful HTMX requests that should update the URL
     document.addEventListener('htmx:afterOnLoad', (event) => {
@@ -470,48 +816,98 @@
       const params = new URLSearchParams(window.location.search);
       return params.get('access_code');
     }
+    // Click outside to close dropdowns
+    document.addEventListener('click', function (event) {
+      // Check if click is outside user dropdown
+      const userDropdownBtn = document.getElementById('user-dropdown-btn');
+      const userDropdownMenu = document.getElementById('user-dropdown-menu');
 
-    // Ensure login button is visible on initial load
+      if (userDropdownBtn && userDropdownMenu &&
+        !userDropdownBtn.contains(event.target) &&
+        !userDropdownMenu.contains(event.target)) {
+        userDropdownMenu.classList.add('hidden');
+        userDropdownBtn.querySelector('svg')?.classList.remove('rotate-180');
+      }
+
+      // Check if click is outside login dropdown
+      const loginDropdownBtn = document.getElementById('login-dropdown-btn');
+      const loginDropdownMenu = document.getElementById('login-dropdown-menu');
+
+      if (loginDropdownBtn && loginDropdownMenu &&
+        !loginDropdownBtn.contains(event.target) &&
+        !loginDropdownMenu.contains(event.target)) {
+        loginDropdownMenu.classList.add('hidden');
+        loginDropdownBtn.querySelector('svg')?.classList.remove('rotate-180');
+      }
+    });
+
+    // Delegate clicks on project headers
+    document.body.addEventListener('click', function (e) {
+      const header = e.target.closest('.project-header');
+      if (header) {
+        const projectId = header.getAttribute('data-project-id');
+        const modelsElement = document.getElementById(`models-${projectId}`);
+        if (!modelsElement) return;
+
+        const toggleButton = header.querySelector('.toggle-btn');
+        if (modelsElement.classList.contains('hidden')) {
+          modelsElement.classList.remove('hidden');
+          if (toggleButton) toggleButton.setAttribute('aria-expanded', 'true');
+        } else {
+          modelsElement.classList.add('hidden');
+          if (toggleButton) toggleButton.setAttribute('aria-expanded', 'false');
+        }
+      }
+    });
+
+    // Delegate clicks on toggle buttons (so they don't propagate to header clicks)
+    document.body.addEventListener('click', function (e) {
+      const toggleButton = e.target.closest('.toggle-btn');
+      if (toggleButton) {
+        e.stopPropagation(); // prevent triggering header click
+        const targetId = toggleButton.getAttribute('data-toggle');
+        const modelsElement = document.getElementById(targetId);
+        if (modelsElement) {
+          if (modelsElement.classList.contains('hidden')) {
+            modelsElement.classList.remove('hidden');
+            toggleButton.setAttribute('aria-expanded', 'true');
+          } else {
+            modelsElement.classList.add('hidden');
+            toggleButton.setAttribute('aria-expanded', 'false');
+          }
+        }
+      }
+    });
+
+    // Initialize dropdown UI visibility and check for auth callback
     document.addEventListener('DOMContentLoaded', () => {
-
       // Check if we're handling a callback
       if (checkForCallback()) {
-
         console.log("Callback detected. Processing...");
-
-
+        document.getElementById('login-container').classList.add('hidden');
         processAuthCallback();
       } else {
-
         console.log("No callback detected. Checking auth state...");
 
-        // Ensure login button is visible on initial load if not logged in
+        // Initialize the correct UI state based on current auth
         const user = auth.currentUser;
-        if (!user) {
-          document.getElementById('login-button').classList.remove('hidden');
+        if (user) {
+          document.getElementById('user-profile').classList.remove('hidden');
+          user.getIdToken(true).then(token => {
+            currentFirebaseToken = token;
+          });
+        } else {
+          document.getElementById('login-container').classList.remove('hidden');
         }
       }
 
-
-      // // Handle auth redirect parameters first
-      // handleAuthRedirect();
-
-      // // Then check if we have a saved token to automatically sign in
-      // const savedToken = localStorage.getItem('firebase:authToken');
-      // if (savedToken && !auth.currentUser) {
-      //   auth.signInWithCustomToken(savedToken).catch(error => {
-      //     console.error('Error signing in with saved token:', error);
-      //     localStorage.removeItem('firebase:authToken');
-      //   });
-      // }
-
-      // // Make sure the login button is visible if not signed in
-      // const user = auth.currentUser;
-      // if (!user) {
-      //   document.getElementById('login-button').classList.remove('hidden');
-      // }
+      // Ensure dropdowns are closed initially
+      document.getElementById('user-dropdown-menu').classList.add('hidden');
+      document.getElementById('login-dropdown-menu').classList.add('hidden');
     });
+
   </script>
+
 </body>
 
 </html>
