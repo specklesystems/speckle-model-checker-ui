@@ -700,3 +700,16 @@ textarea:focus {
   background-color: transparent;
   font-size:1.5rem;
 }
+
+tr.deleting, tr.deleting:hover {
+  background-color: #fff2f2;
+  border: red;
+}
+
+tr.editing, tr.editing:hover {
+  background-color: #f0f9ff;
+}
+
+tr.deleting button, tr.editing button {
+  display: none;
+}

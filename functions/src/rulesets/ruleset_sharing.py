@@ -4,15 +4,14 @@ from ..auth.token_verification import verify_firebase_token
 from ..utils.jinja_env import render_template
 from ..utils.firestore_utils import get_ruleset, toggle_ruleset_sharing, get_shared_ruleset
 
-@verify_firebase_token
-async def get_share_dialog(request, ruleset_id):
+def get_share_dialog(request, ruleset_id):
     """Return HTML for the sharing dialog."""
     try:
         # Get user info from request
         user_id = request.user_id
         
         # Get the ruleset
-        ruleset = await get_ruleset(ruleset_id)
+        ruleset =  get_ruleset(ruleset_id)
         
         if not ruleset:
             return https_fn.Response(
@@ -61,7 +60,7 @@ async def toggle_ruleset_sharing_handler(request, ruleset_id):
         user_id = request.user_id
         
         # Get the ruleset
-        ruleset = await get_ruleset(ruleset_id)
+        ruleset =  get_ruleset(ruleset_id)
         
         if not ruleset:
             return https_fn.Response(
@@ -79,7 +78,7 @@ async def toggle_ruleset_sharing_handler(request, ruleset_id):
             )
         
         # Toggle sharing
-        is_shared = await toggle_ruleset_sharing(ruleset_id)
+        is_shared =  toggle_ruleset_sharing(ruleset_id)
         
         # Return the updated status
         return https_fn.Response(
@@ -97,7 +96,7 @@ async def get_shared_ruleset_view(request, ruleset_id):
     """Return HTML for a publicly shared ruleset."""
     try:
         # Get the shared ruleset (only returns if it's shared)
-        ruleset = await get_shared_ruleset(ruleset_id)
+        ruleset =  get_shared_ruleset(ruleset_id)
         
         if not ruleset:
             return https_fn.Response(

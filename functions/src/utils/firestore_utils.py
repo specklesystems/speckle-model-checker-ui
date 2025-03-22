@@ -29,8 +29,6 @@ import traceback
 def fetch_rulesets(db, user_id, project_id):
     try:
 
-        print("db.collection('ruleSets') type: ", type(db.collection("ruleSets")))
-
         query = (
             db.collection("ruleSets")
             .where("userId", "==", user_id)
@@ -39,12 +37,6 @@ def fetch_rulesets(db, user_id, project_id):
         )
 
         ruleset_docs = query.get()
-
-        if not ruleset_docs:
-            print("No results found.")
-        else:
-            for doc in ruleset_docs:
-                print(doc.id, doc.to_dict())
 
         # Format results
         rulesets = []
@@ -261,3 +253,184 @@ def get_shared_ruleset(ruleset_id):
         ruleset["updated_at"] = ruleset["updatedAt"].strftime("%Y-%m-%d %H:%M:%S")
 
     return ruleset
+
+
+def get_rules_for_ruleset(ruleset_id):
+    """
+    Get all rules for a ruleset from the subcollection.
+
+    Args:
+        ruleset_id (str): Ruleset ID
+
+    Returns:
+        list: List of rule documents with IDs
+    """
+
+    rules_ref = (
+        db.collection("ruleSets")
+        .document(ruleset_id)
+        .collection("rules")
+        .order_by("order")
+    )
+    rules_docs = rules_ref.get()
+
+    rules = []
+    for doc in rules_docs:
+        rule = doc.to_dict()
+        rule["id"] = doc.id  # Add the document ID
+        rules.append(rule)
+
+    return rules
+
+
+def create_rule(ruleset_id, user_id, rule_data):
+    """
+    Create a new rule in a ruleset.
+
+    Args:
+        ruleset_id (str): Ruleset ID
+        user_id (str): User ID
+        rule_data (dict): Rule data including message, severity, and conditions
+
+    Returns:
+        dict: Created rule with ID
+    """
+
+    # Get current rule count for ordering
+    existing_rules = get_rules_for_ruleset(ruleset_id)
+
+    # Prepare rule document
+    new_rule = {
+        "message": rule_data.get("message"),
+        "severity": rule_data.get("severity"),
+        "conditions": rule_data.get("conditions", []),
+        "rulesetId": ruleset_id,
+        "userId": user_id,
+        "createdAt": firestore.SERVER_TIMESTAMP,
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+        "order": len(existing_rules),  # Set order for sorting
+    }
+
+    # Add to rules subcollection
+    timestamp, rule_ref = (
+        db.collection("ruleSets").document(ruleset_id).collection("rules").add(new_rule)
+    )
+
+    # Get the created document
+    try:
+        rule_doc = rule_ref.get()
+        result = rule_doc.to_dict()
+        result["id"] = rule_doc.id
+    except Exception as e:
+        print("Error creating rule:", e)
+
+    return result
+
+
+def get_rule(ruleset_id, rule_id):
+    """
+    Get a rule by ID.
+
+    Args:
+        ruleset_id (str): Ruleset ID
+        rule_id (str): Rule ID
+
+    Returns:
+        dict: Rule document with ID or None if not found
+    """
+
+    rule_doc = (
+        db.collection("ruleSets")
+        .document(ruleset_id)
+        .collection("rules")
+        .document(rule_id)
+        .get()
+    )
+
+    if not rule_doc.exists:
+        return None
+
+    rule = rule_doc.to_dict()
+    rule["id"] = rule_doc.id
+
+    return rule
+
+
+def update_single_rule(ruleset_id, rule_id, data):
+    """
+    Update a rule.
+
+    Args:
+        ruleset_id (str): Ruleset ID
+        rule_id (str): Rule ID
+        data (dict): Fields to update
+
+    Returns:
+        bool: Success status
+    """
+
+    # Add updatedAt timestamp
+    update_data = data.copy()
+    update_data["updatedAt"] = firestore.SERVER_TIMESTAMP
+
+    # Update document
+    db.collection("ruleSets").document(ruleset_id).collection("rules").document(
+        rule_id
+    ).update(update_data)
+
+    return True
+
+
+def delete_single_rule(ruleset_id, rule_id):
+    """
+    Delete a rule.
+
+    Args:
+        ruleset_id (str): Ruleset ID
+        rule_id (str): Rule ID
+
+    Returns:
+        bool: Success status
+    """
+
+    # Delete document
+    db.collection("ruleSets").document(ruleset_id).collection("rules").document(
+        rule_id
+    ).delete()
+
+    # Optionally, reorder remaining rules
+    reorder_rules(ruleset_id)
+
+    return True
+
+
+def reorder_rules(ruleset_id):
+    """
+    Reorder rules after deletion to maintain sequential order.
+
+    Args:
+        ruleset_id (str): Ruleset ID
+    """
+
+    # Get all rules sorted by current order
+    rules_ref = (
+        db.collection("ruleSets")
+        .document(ruleset_id)
+        .collection("rules")
+        .order_by("order")
+    )
+    rules_docs = rules_ref.get()
+
+    # Update order for each rule
+    batch = db.batch()
+    for i, doc in enumerate(rules_docs):
+        rule_ref = (
+            db.collection("ruleSets")
+            .document(ruleset_id)
+            .collection("rules")
+            .document(doc.id)
+        )
+        batch.update(rule_ref, {"order": i})
+
+    # Commit batch update
+    batch.commit()

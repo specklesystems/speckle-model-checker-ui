@@ -4,19 +4,18 @@ import io
 from ..auth.token_verification import verify_firebase_token
 from ..utils.firestore_utils import get_ruleset, get_shared_ruleset
 
-@verify_firebase_token
-async def export_ruleset_as_tsv(request, ruleset_id):
+def export_ruleset_as_tsv(request, ruleset_id):
     """Export a ruleset as a TSV file."""
     try:
         # Get user info from request
         user_id = request.user_id
         
         # Get the ruleset
-        ruleset = await get_ruleset(ruleset_id)
+        ruleset =  get_ruleset(ruleset_id)
         
         # If not found as a private ruleset, try as a shared ruleset
         if not ruleset:
-            ruleset = await get_shared_ruleset(ruleset_id)
+            ruleset =  get_shared_ruleset(ruleset_id)
             
         if not ruleset:
             return https_fn.Response(

@@ -1,7 +1,7 @@
 <div class="bg-white p-6 rounded-md border border-gray-200 mb-6">
   <h3 class="text-lg font-medium mb-4">Add New Rule</h3>
 
-  <form onsubmit="addNewRule('/api/rulesets/{{ ruleset_id }}/rules', '#rules-container', event)" class="space-y-4"
+  <form onsubmit="Rulesets.addNewRule('/api/rulesets/{{ ruleset_id }}/rules', '#rules-container', event)" class="space-y-4"
     validate>
 
     <div>
@@ -80,7 +80,7 @@
 
     <div class="flex justify-between mt-4">
       <button type="button" class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-        onclick="editRuleset('/api/rulesets/{{ ruleset_id }}', '#main-content', event)">
+        onclick="Rulesets.editRuleset('/api/rulesets/{{ ruleset_id }}', '#main-content', event)">
         Cancel
       </button>
 

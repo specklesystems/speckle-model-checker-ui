@@ -58,6 +58,9 @@ from src.rules.rule_routes import (
     get_new_rule_form,
     get_edit_rule_form,
     get_condition_row,
+    update_rule_handler,
+    create_rule_handler,
+    delete_rule_handler
 )
 
 
@@ -174,10 +177,45 @@ def export_ruleset_fn(req: https_fn.Request) -> https_fn.Response:
 # Rule Functions
 @https_fn.on_request(cors=cors_config)
 def get_rules_fn(req: https_fn.Request) -> https_fn.Response:
+
+    # Extract ruleset_id from path like /api/rulesets/{ruleset_id}/rules
     ruleset_id = (
-        req.args.get("ruleset_id") or req.path.split("/rules")[0].split("/")[-1]
+        req.path.split("/rulesets/")[1].split("/")[0]
+        if "/rulesets/" in req.path
+        else req.args.get("ruleset_id")
     )
-    return get_rules(req, ruleset_id)
+    # Route based on HTTP method
+    if req.method == "GET":
+        return get_rules(req, ruleset_id)
+    elif req.method == "POST":
+
+        return create_rule_handler(req, ruleset_id)
+    else:
+        return https_fn.Response(
+            json.dumps({"error": f"Method {req.method} not allowed"}),
+            mimetype="application/json",
+            status=405,
+        )
+
+
+@https_fn.on_request(cors=cors_config)
+def update_rule_fn(req: https_fn.Request) -> https_fn.Response:
+    parts = req.path.split("/")
+    ruleset_id = req.args.get("ruleset_id") or parts[-3]
+    rule_index = req.args.get("rule_index") or parts[-1]
+
+    # Route based on HTTP method
+    if req.method == "DELETE":
+        return delete_rule_handler(req, ruleset_id, rule_index)
+    elif req.method == "PUT":
+        return update_rule_handler(req, ruleset_id, rule_index)
+    else:
+        return https_fn.Response(
+            json.dumps({"error": f"Method {req.method} not allowed"}),
+            mimetype="application/json",
+            status=405,
+        )
+
 
 
 @https_fn.on_request(cors=cors_config)
@@ -191,8 +229,8 @@ def get_new_rule_form_fn(req: https_fn.Request) -> https_fn.Response:
 @https_fn.on_request(cors=cors_config)
 def get_edit_rule_form_fn(req: https_fn.Request) -> https_fn.Response:
     parts = req.path.split("/")
-    ruleset_id = req.args.get("ruleset_id") or parts[-3]
-    rule_index = req.args.get("rule_index") or parts[-1]
+    ruleset_id = req.args.get("ruleset_id") or parts[-4]
+    rule_index = req.args.get("rule_index") or parts[-2]
     return get_edit_rule_form(req, ruleset_id, rule_index)
 
 
