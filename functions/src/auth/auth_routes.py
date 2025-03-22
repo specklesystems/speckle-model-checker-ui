@@ -30,7 +30,7 @@ def get_speckle_config():
             ),
         }
     except Exception as e:
-        print(f"Error getting Speckle config: {str(e)}")
+        # print(f"Error getting Speckle config: {str(e)}")
         return {
             "app_id": None,
             "app_secret": None,
