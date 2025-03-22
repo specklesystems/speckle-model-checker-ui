@@ -125,6 +125,43 @@ const Rulesets = {
       .catch((error) => console.error('Fetch error:', error));
   },
 
+  addConditionRow: function (url, targetSelector, event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+
+    const target = event.target;
+    const container = document.querySelector('#conditions-container');
+
+    const index = container.querySelectorAll('.condition-row').length;
+
+    queryUrl = `${url}?index=${index}`;
+
+    fetch(queryUrl)
+      .then((response) => {
+        response.text().then((html) => {
+          document.querySelector(targetSelector).insertAdjacentHTML('beforeend', html);
+        });
+      })
+      .catch((error) => console.error('Fetch error:', error));
+  },
+
+  deleteConditionRow: function (event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+
+    const target = event.target;
+    const index = target.closest('.condition-row').dataset.conditionindex;
+
+    const row = document.querySelector(`[data-conditionIndex="${index}"]`);
+    if (row) {
+      row.remove();
+    }  
+  },
+
   // Delete rule
   deleteRule: function (url, targetSelector, event) {
     if (event) {
@@ -176,8 +213,6 @@ function toggleAddRuleButton() {
   const ruleFormContainer = document.querySelector('#rule-form-container');
   const addRuleButton = document.querySelector('#rules-container button');
 
-  console.log('Observer triggered. Current rule form content:');
-
   if (ruleFormContainer && addRuleButton) {
     if (ruleFormContainer.innerHTML.trim() !== '') {
       addRuleButton.style.display = 'none';
@@ -190,7 +225,6 @@ function toggleAddRuleButton() {
 function setupRuleFormObserver() {
   const ruleFormContainer = document.querySelector('#rule-form-container');
   if (ruleFormContainer) {
-    console.log('Attaching MutationObserver on #rule-form-container');
     const observer = new MutationObserver(toggleAddRuleButton);
     observer.observe(ruleFormContainer, { childList: true, subtree: true });
 

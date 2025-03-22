@@ -1,24 +1,23 @@
-<div class="condition-row grid grid-cols-4 gap-3 items-end">
+<div class="condition-row grid grid-cols-4 gap-3 items-end" data-conditionIndex="{{ index }}">
   <div>
-      <label class="block text-xs text-gray-500 mb-1">Logic</label>
+      <!-- <label class="block text-xs text-gray-500 mb-1">Logic</label> -->
       <select name="conditions[{{ index }}][logic]" 
           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
-          <option value="WHERE" {% if index == 0 %}selected{% endif %}>WHERE</option>
+          <!-- <option value="WHERE" {% if index == 0 %}selected{% endif %}>WHERE</option> -->
           <option value="AND" {% if index > 0 %}selected{% endif %}>AND</option>
-          <option value="OR">OR</option>
           <option value="CHECK">CHECK</option>
       </select>
   </div>
   
   <div>
-      <label class="block text-xs text-gray-500 mb-1">Property</label>
+      <!-- <label class="block text-xs text-gray-500 mb-1">Property</label> -->
       <input type="text" name="conditions[{{ index }}][propertyName]" 
           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
           placeholder="e.g. speckle_type" required>
   </div>
   
   <div>
-      <label class="block text-xs text-gray-500 mb-1">Predicate</label>
+      <!-- <label class="block text-xs text-gray-500 mb-1">Predicate</label> -->
       <select name="conditions[{{ index }}][predicate]" 
           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
           <option value="==">equals (==)</option>
@@ -36,7 +35,7 @@
   
   <div class="flex items-end space-x-2">
       <div class="flex-1">
-          <label class="block text-xs text-gray-500 mb-1">Value</label>
+          <!-- <label class="block text-xs text-gray-500 mb-1">Value</label> -->
           <input type="text" name="conditions[{{ index }}][value]" 
               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
               placeholder="e.g. Wall" required>

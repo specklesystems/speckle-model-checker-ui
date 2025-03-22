@@ -60,7 +60,7 @@ from src.rules.rule_routes import (
     get_condition_row,
     update_rule_handler,
     create_rule_handler,
-    delete_rule_handler
+    delete_rule_handler,
 )
 
 
@@ -217,7 +217,6 @@ def update_rule_fn(req: https_fn.Request) -> https_fn.Response:
         )
 
 
-
 @https_fn.on_request(cors=cors_config)
 def get_new_rule_form_fn(req: https_fn.Request) -> https_fn.Response:
     ruleset_id = (
@@ -227,16 +226,33 @@ def get_new_rule_form_fn(req: https_fn.Request) -> https_fn.Response:
 
 
 @https_fn.on_request(cors=cors_config)
-def get_edit_rule_form_fn(req: https_fn.Request) -> https_fn.Response:
-    parts = req.path.split("/")
-    ruleset_id = req.args.get("ruleset_id") or parts[-4]
-    rule_index = req.args.get("rule_index") or parts[-2]
-    return get_edit_rule_form(req, ruleset_id, rule_index)
+def get_condition_row_fn(req: https_fn.Request) -> https_fn.Response:
+
+    index = req.args.get("index")
+
+    if not index: 
+        return https_fn.Response(
+            json.dumps({"error": "Index not found"}),
+            mimetype="application/json",
+            status=400,
+        )
+
+    return get_condition_row(index)
 
 
 @https_fn.on_request(cors=cors_config)
-def get_condition_row_fn(req: https_fn.Request) -> https_fn.Response:
+def get_edit_rule_form_fn(req: https_fn.Request) -> https_fn.Response:
     parts = req.path.split("/")
-    ruleset_id = req.args.get("ruleset_id") or parts[-3]
-    index = req.args.get("index") or parts[-1]
-    return get_condition_row(req, ruleset_id, index)
+
+    print(f"Request path: {req.path}")
+
+    if len(parts) < 5:
+        return https_fn.Response(
+            json.dumps({"error": "Invalid URL path"}),
+            mimetype="application/json",
+            status=400,
+        )
+
+    ruleset_id = req.args.get("ruleset_id") or parts[-4]
+    rule_index = req.args.get("rule_index") or parts[-2]
+    return get_edit_rule_form(req, ruleset_id, rule_index)

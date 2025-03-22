@@ -13,7 +13,7 @@ from ..utils.firestore_utils import (
     get_rule,
     delete_single_rule,
 )
-
+import re
 
 def get_rules(request, ruleset_id):
     """Return HTML for all rules in a ruleset."""
@@ -187,15 +187,15 @@ def get_edit_rule_form(request, ruleset_id, rule_id):
         )
 
 
-def get_condition_row(request, ruleset_id, index):
+def get_condition_row(index):
     """Return HTML for a new condition row."""
     try:
-        # Convert index to int
+
         index = int(index)
 
         # Return the condition row template
         return https_fn.Response(
-            render_template("condition_row.html", ruleset_id=ruleset_id, index=index),
+            render_template("condition_row.html", index=index),
             mimetype="text/html",
         )
 
@@ -307,13 +307,16 @@ def update_rule_handler(request, ruleset_id, rule_id):
         message = form_data.get("message")
         severity = form_data.get("severity")
 
-        # Process conditions
-        conditions = []
-        for i in range(10):  # Assuming maximum 10 conditions
-            logic_key = f"conditions[{i}][logic]"
-            if logic_key not in form_data:
-                break
+        # Dynamically find all condition indexes
+        condition_indexes = set()
+        pattern = re.compile(r"conditions\[(\d+)\]\[logic\]")
+        for key in form_data.keys():
+            match = pattern.match(key)
+            if match:
+                condition_indexes.add(int(match.group(1)))
 
+        conditions = []
+        for i in sorted(condition_indexes):
             conditions.append(
                 {
                     "logic": form_data.get(f"conditions[{i}][logic]"),
@@ -322,6 +325,14 @@ def update_rule_handler(request, ruleset_id, rule_id):
                     "value": form_data.get(f"conditions[{i}][value]"),
                 }
             )
+
+        # Enforce logic rules
+        if conditions:
+            conditions[0]["logic"] = "WHERE"
+            for c in conditions[1:-1]:
+                c["logic"] = "AND"
+            if len(conditions) > 1:
+                conditions[-1]["logic"] = "CHECK"
 
         # Get the ruleset to verify ownership
         ruleset = get_ruleset(ruleset_id)

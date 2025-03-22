@@ -4,6 +4,10 @@
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
+        "source": "/api/rule/condition",
+        "function": "get_condition_row_fn"
+      },
+      {
         "source": "/api/auth/init",
         "function": "init_auth_fn"
       },
@@ -60,12 +64,12 @@
         "function": "get_rules_fn"
       },
       {
-        "source": "/api/rulesets/*/rules/*/edit",
-        "function": "get_edit_rule_form_fn"
-      },
-      {
         "source": "/api/rulesets/*/rules/*/condition-row/*",
         "function": "get_condition_row_fn"
+      },
+      {
+        "source": "/api/rulesets/*/rules/*/edit",
+        "function": "get_edit_rule_form_fn"
       },
       {
         "source": "/api/rulesets/*/rules/*",

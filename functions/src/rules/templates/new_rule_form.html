@@ -1,14 +1,14 @@
 <div class="bg-white p-6 rounded-md border border-gray-200 mb-6">
   <h3 class="text-lg font-medium mb-4">Add New Rule</h3>
 
-  <form onsubmit="Rulesets.addNewRule('/api/rulesets/{{ ruleset_id }}/rules', '#rules-container', event)" class="space-y-4"
-    validate>
+  <form onsubmit="Rulesets.addNewRule('/api/rulesets/{{ ruleset_id }}/rules', '#rules-container', event)"
+    class="space-y-4" validate>
 
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-1">Conditions</label>
 
       <div id="conditions-container" class="space-y-3 mb-4">
-        <div class="condition-row grid grid-cols-4 gap-3 items-end">
+        <div class="condition-row grid grid-cols-4 gap-3 items-end" data-conditionIndex="0">
           <div>
             <label class="block text-xs text-gray-500 mb-1">Logic</label>
             <select name="conditions[0][logic]" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
@@ -51,9 +51,11 @@
     </div>
 
     <div>
-      <button type="button" class="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-        hx-get="/api/rulesets/{{ ruleset_id }}/condition-row/1?is_last=false" hx-target="#conditions-container"
-        hx-swap="beforeend">
+      <button type="button" onclick="Rulesets.addConditionRow(
+        '/api/rule/condition', 
+        '#conditions-container', 
+        event
+      )" class="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
         Add Condition
       </button>
     </div>
@@ -70,7 +72,7 @@
         <label for="severity" class="block text-sm font-medium text-gray-700 mb-1">Severity</label>
         <select id="severity" name="severity"
           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-          onchange="updateSeverityColor(this)" required>
+          onchange="UI.updateSeverityColor(this)" required>
           <option value="Error" class="bg-red-50 text-red-800">Error</option>
           <option value="Warning" class="bg-yellow-50 text-yellow-800">Warning</option>
           <option value="Info" class="bg-blue-50 text-blue-800">Info</option>

@@ -5,7 +5,11 @@ import json
 from ..auth.token_verification import verify_firebase_token
 from ..utils.jinja_env import render_template
 from ..utils.speckle_api import get_user_projects, get_project_details
-from ..utils.firestore_utils import get_rulesets_for_project, safe_verify_id_token
+from ..utils.firestore_utils import (
+    get_rulesets_for_project,
+    safe_verify_id_token,
+    get_rules_for_ruleset,
+)
 
 
 # Function to get Speckle token for a user from Firestore
@@ -66,6 +70,7 @@ def get_user_projects_view(request):
             status=500,
         )
 
+
 def get_project_with_rulesets(request):
     """Return HTML for a project with its rulesets."""
 
@@ -93,7 +98,6 @@ def get_project_with_rulesets(request):
             status=400,
         )
 
-
     try:
         decoded_token = safe_verify_id_token(id_token)
         user_id = decoded_token["uid"]
@@ -120,14 +124,17 @@ def get_project_with_rulesets(request):
         # Fetch minimal project details
         project = get_project_details(speckle_token, project_id)
 
+        def custom_serializer(obj):
+            if hasattr(obj, "isoformat"):
+                return obj.isoformat()
+            return str(obj)  # fallback
+
+        for ruleset in rulesets:
+            ruleset["rules"] = get_rules_for_ruleset(ruleset["id"])
 
         # Return the rendered template
         return https_fn.Response(
-            render_template(
-                "project_details.html",
-                project=project,
-                rulesets=rulesets
-            ),
+            render_template("project_details.html", project=project, rulesets=rulesets),
             mimetype="text/html",
         )
     except Exception as e:
@@ -144,7 +151,6 @@ def get_new_ruleset_form(request):
     try:
         # Get project ID from query string
         project_id = request.args.get("projectId")
-
 
         if not project_id:
             return https_fn.Response(

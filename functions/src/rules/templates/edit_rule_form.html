@@ -1,8 +1,7 @@
 <div class="bg-white p-6 rounded-md border border-gray-200 mb-6">
   <h3 class="text-lg font-medium mb-4">Edit Rule</h3>
 
-  <form
-    onsubmit="Rulesets.updateRule('/api/rulesets/{{ ruleset_id }}/rules/{{ rule.id }}', '#rules-container', event)"
+  <form onsubmit="Rulesets.updateRule('/api/rulesets/{{ ruleset_id }}/rules/{{ rule.id }}', '#rules-container', event)"
     class="space-y-4">
 
     <div>
@@ -10,16 +9,19 @@
 
       <div id="conditions-container" class="space-y-3 mb-4">
         {% for condition in rule.conditions %}
-        <div class="condition-row grid grid-cols-4 gap-3 items-end">
+        <div class="condition-row grid grid-cols-4 gap-3 items-end" data-conditionIndex="{{ loop.index }}">
           <div>
+            {% if loop.index0 == 0 %}
             <label class="block text-xs text-gray-500 mb-1">Logic</label>
+            {% endif %}
             <select name="conditions[{{ loop.index0 }}][logic]"
               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" {% if loop.index0==0 %}disabled{% endif
               %}>
+              {% if loop.index0 == 0 %}
               <option value="WHERE" {% if loop.index0==0 %}selected{% elif condition.logic=='WHERE' %}selected{% endif
                 %}>WHERE</option>
+                {% endif %}
               <option value="AND" {% if condition.logic=='AND' %}selected{% endif %}>AND</option>
-              <option value="OR" {% if condition.logic=='OR' %}selected{% endif %}>OR</option>
               <option value="CHECK" {% if condition.logic=='CHECK' %}selected{% endif %}>CHECK</option>
             </select>
             {% if loop.index0 == 0 %}
@@ -28,14 +30,18 @@
           </div>
 
           <div>
+            {% if loop.index0 == 0 %}
             <label class="block text-xs text-gray-500 mb-1">Property</label>
+            {% endif %}
             <input type="text" name="conditions[{{ loop.index0 }}][propertyName]" value="{{ condition.propertyName }}"
               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="e.g. speckle_type"
               required>
           </div>
 
           <div>
+            {% if loop.index0 == 0 %}
             <label class="block text-xs text-gray-500 mb-1">Predicate</label>
+            {% endif %}
             <select name="conditions[{{ loop.index0 }}][predicate]"
               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
               <option value="==" {% if condition.predicate=='==' %}selected{% endif %}>equals (==)</option>
@@ -56,15 +62,16 @@
 
           <div class="flex items-end space-x-2">
             <div class="flex-1">
+              {% if loop.index0 == 0 %}
               <label class="block text-xs text-gray-500 mb-1">Value</label>
+              {% endif %}
               <input type="text" name="conditions[{{ loop.index0 }}][value]" value="{{ condition.value }}"
                 class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="e.g. Wall" required>
             </div>
 
             {% if loop.index0 > 0 %}
             <button type="button" class="px-2 py-2 text-red-600 hover:text-red-800"
-              hx-delete="/api/rulesets/{{ ruleset_id }}/condition-row/{{ loop.index0 }}"
-              hx-target="closest .condition-row" hx-swap="outerHTML">
+              onclick="Rulesets.deleteConditionRow(event)">
               <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd"
                   d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
@@ -79,9 +86,11 @@
     </div>
 
     <div>
-      <button type="button" class="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-        hx-get="/api/rulesets/{{ ruleset_id }}/condition-row/{{ rule.conditions | length }}?is_last=false"
-        hx-target="#conditions-container" hx-swap="beforeend">
+      <button type="button" onclick="Rulesets.addConditionRow(
+        '/api/rule/condition', 
+        '#conditions-container', 
+        event
+      )" class="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
         Add Condition
       </button>
     </div>
@@ -98,7 +107,7 @@
         <label for="severity" class="block text-sm font-medium text-gray-700 mb-1">Severity</label>
         <select id="severity" name="severity"
           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-          onchange="updateSeverityColor(this)">
+          onchange="UI.updateSeverityColor(this)">
           <option value="Error" class="bg-red-50 text-red-800" {% if rule.severity=='Error' %}selected{% endif %}>Error
           </option>
           <option value="Warning" class="bg-yellow-50 text-yellow-800" {% if rule.severity=='Warning' %}selected{% endif
