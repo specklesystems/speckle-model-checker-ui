@@ -1,11 +1,38 @@
-from firebase_functions import https_fn, options
-import firebase_admin
-from firebase_admin import firestore, credentials
 import json
 import logging
 
+import firebase_admin
+from firebase_admin import credentials
+from firebase_functions import https_fn, options
 from google.api_core.exceptions import GoogleAPICallError
 from google.cloud import secretmanager
+
+from src.auth.auth_routes import exchange_token, get_user, init_speckle_auth
+from src.projects.project_routes import (
+    get_new_ruleset_form,
+    get_project_with_rulesets,
+    get_user_projects_view,
+)
+from src.rules.rule_routes import (
+    create_rule_handler,
+    delete_rule_handler,
+    get_condition_row,
+    get_edit_rule_form,
+    get_new_rule_form,
+    get_rules,
+    update_rule_handler,
+)
+from src.rulesets.ruleset_export import export_ruleset_as_tsv
+from src.rulesets.ruleset_routes import (
+    create_new_ruleset,
+    delete_ruleset_handler,
+    get_ruleset_edit_form,
+    update_ruleset_info,
+)
+from src.rulesets.ruleset_sharing import (
+    get_shared_ruleset_view,
+    toggle_ruleset_sharing_handler,
+)
 
 
 def load_firebase_cred_with_fallback():
@@ -35,33 +62,6 @@ if not firebase_admin._apps:
 logging.basicConfig(level=logging.INFO)
 
 # Import all function modules
-from src.auth.auth_routes import init_speckle_auth, exchange_token, get_user
-from src.projects.project_routes import (
-    get_user_projects_view,
-    get_project_with_rulesets,
-    get_new_ruleset_form,
-)
-from src.rulesets.ruleset_routes import (
-    get_ruleset_edit_form,
-    create_new_ruleset,
-    update_ruleset_info,
-    delete_ruleset_handler,
-)
-from src.rulesets.ruleset_sharing import (
-    get_share_dialog,
-    toggle_ruleset_sharing_handler,
-    get_shared_ruleset_view,
-)
-from src.rulesets.ruleset_export import export_ruleset_as_tsv
-from src.rules.rule_routes import (
-    get_rules,
-    get_new_rule_form,
-    get_edit_rule_form,
-    get_condition_row,
-    update_rule_handler,
-    create_rule_handler,
-    delete_rule_handler,
-)
 
 
 # Define CORS options
@@ -141,8 +141,7 @@ def delete_ruleset_fn(req: https_fn.Request) -> https_fn.Response:
 @https_fn.on_request(cors=cors_config)
 def toggle_sharing_fn(req: https_fn.Request) -> https_fn.Response:
     ruleset_id = (
-        req.args.get("ruleset_id")
-        or req.path.split("/share")[0].split("/")[-1]
+        req.args.get("ruleset_id") or req.path.split("/share")[0].split("/")[-1]
     )
 
     return toggle_ruleset_sharing_handler(req, ruleset_id)
@@ -150,14 +149,12 @@ def toggle_sharing_fn(req: https_fn.Request) -> https_fn.Response:
 
 @https_fn.on_request(cors=cors_config)
 def get_shared_ruleset_fn(req: https_fn.Request) -> https_fn.Response:
-    
     parts = req.path.split("/")
     print(f"Request path: {req.path}")
     print(f"Parts: {parts}")
-    
+
     ruleset_id = (
-        req.args.get("ruleset_id")
-        or req.path.split("/shared/")[-1].split("/")[0]
+        req.args.get("ruleset_id") or req.path.split("/shared/")[-1].split("/")[0]
     )
 
     print(f"Ruleset ID: {ruleset_id}")
@@ -176,7 +173,6 @@ def export_ruleset_fn(req: https_fn.Request) -> https_fn.Response:
 # Rule Functions
 @https_fn.on_request(cors=cors_config)
 def get_rules_fn(req: https_fn.Request) -> https_fn.Response:
-
     # Extract ruleset_id from path like /api/rulesets/{ruleset_id}/rules
     ruleset_id = (
         req.path.split("/rulesets/")[1].split("/")[0]
@@ -187,7 +183,6 @@ def get_rules_fn(req: https_fn.Request) -> https_fn.Response:
     if req.method == "GET":
         return get_rules(req, ruleset_id)
     elif req.method == "POST":
-
         return create_rule_handler(req, ruleset_id)
     else:
         return https_fn.Response(
@@ -226,10 +221,9 @@ def get_new_rule_form_fn(req: https_fn.Request) -> https_fn.Response:
 
 @https_fn.on_request(cors=cors_config)
 def get_condition_row_fn(req: https_fn.Request) -> https_fn.Response:
-
     index = req.args.get("index")
 
-    if not index: 
+    if not index:
         return https_fn.Response(
             json.dumps({"error": "Index not found"}),
             mimetype="application/json",

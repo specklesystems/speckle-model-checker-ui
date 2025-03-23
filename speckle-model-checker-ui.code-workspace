@@ -14,5 +14,6 @@
     }
   ],
   "settings": {
+    "editor.formatOnSave": true
   }
 }

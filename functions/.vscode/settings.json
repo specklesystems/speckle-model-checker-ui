@@ -1,0 +1,7 @@
+{
+  "editor.defaultFormatter": "charliermarsh.ruff",
+  "ruff.codeAction.disableRuleComment": {
+    "enable": false
+  },
+  "ruff.lineLength": 88
+}

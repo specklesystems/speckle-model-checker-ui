@@ -1,27 +1,22 @@
-from firebase_functions import https_fn
-import firebase_admin
-from firebase_admin import auth
-from google.cloud import firestore
-from jinja2 import Template
 import json
-import uuid
-import datetime
-import requests
-from ..utils.jinja_env import render_template
-from flask import make_response
+import os
 import secrets
 import string
 
-import os
+import requests
+from firebase_admin import auth
+from firebase_admin.exceptions import FirebaseError
+from firebase_functions import https_fn
+from google.cloud import firestore
 
 # Verify challenge exists and hasn't been used
 db = firestore.Client()
+
 
 # Get Speckle configuration from environment
 def get_speckle_config():
     """Get Speckle application configuration from Firebase config."""
     try:
-
         return {
             "app_id": os.environ.get("SPECKLE_APP_ID"),
             "app_secret": os.environ.get("SPECKLE_APP_SECRET"),
@@ -29,8 +24,7 @@ def get_speckle_config():
                 "SPECKLE_SERVER_URL", "https://app.speckle.systems"
             ),
         }
-    except Exception as e:
-        # print(f"Error getting Speckle config: {str(e)}")
+    except Exception:
         return {
             "app_id": None,
             "app_secret": None,
@@ -42,7 +36,6 @@ def init_speckle_auth(request):
     """Initialize Speckle authentication and return a login URL."""
 
     try:
-        speckle_config = get_speckle_config()
         app_id = os.environ.get("SPECKLE_APP_ID")
         server_url = os.environ.get("SPECKLE_SERVER_URL", "https://app.speckle.systems")
         challenge_id = os.environ.get("SPECKLE_CHALLENGE_ID")
@@ -64,8 +57,6 @@ def init_speckle_auth(request):
             protocol = "https" if not host_url.startswith("localhost") else "http"
             host_url = f"{protocol}://{host_url}/"
 
-        base_url = host_url.rstrip("/")
-
         auth_url = f"{server_url}/authn/verify/{app_id}/{challenge_id}"
 
         return https_fn.Response(
@@ -82,7 +73,9 @@ def init_speckle_auth(request):
     except Exception as e:
         print(f"Auth initialization error: {str(e)}")
         return https_fn.Response(
-            json.dumps({"error": str(e)}), mimetype="application/json", status=500
+            json.dumps({"error": str(e)}),
+            mimetype="application/json",
+            status=500,
         )
 
 
@@ -94,6 +87,10 @@ def get_user(request):
         # token and refresh token are in the body of the POST request
         token = request.json.get("token")
         refresh_token = request.json.get("refreshToken")
+
+        # Handle missing tokens by raising an exception
+        if not token or not refresh_token:
+            raise ValueError("Missing token or refresh token")
 
         query = """
           query User{
@@ -116,42 +113,18 @@ def get_user(request):
         )
 
         if response.status_code != 200:
-            return https_fn.Response(
-                json.dumps({"error": "Failed to get user profile"}),
-                mimetype="application/json",
-                status=response.status_code,
-            )
+            raise ValueError(f"Failed to get user profile: HTTP {response.status_code}")
 
         data = response.json()
         user = data["data"]["activeUser"]
 
+        # Generate random password for new users
         password = "".join(
             secrets.choice(string.ascii_letters + string.digits) for _ in range(20)
         )
 
-        # Create or update Firebase user
-        try:
-            firebase_user = auth.get_user_by_email(user["email"])
-
-            # User exists, update properties if needed
-            if (
-                firebase_user.display_name != user["name"]
-                or firebase_user.photo_url != user["avatar"]
-            ):
-                auth.update_user(
-                    firebase_user.uid,
-                    display_name=user["name"],
-                    photo_url=user["avatar"],
-                )
-
-        except auth.UserNotFoundError:
-            # Create new user
-            firebase_user = auth.create_user(
-                email=user["email"],
-                display_name=user["name"],
-                photo_url=user["avatar"],
-                password=password,  # Add a random password
-            )
+        # Create or update user in Firebase
+        firebase_user = create_or_update_firebase_user(user, password)
 
         # Store Speckle tokens in Firestore
         db.collection("userTokens").document(firebase_user.uid).set(
@@ -169,17 +142,78 @@ def get_user(request):
         )
 
         # Ensure it's a proper string (not bytes)
-        custom_token_str = custom_token.decode()
+        custom_token_str = (
+            custom_token.decode() if isinstance(custom_token, bytes) else custom_token
+        )
 
+        # Single successful return path
         return https_fn.Response(
             json.dumps({"user": user, "customToken": custom_token_str}),
             mimetype="application/json",
         )
+    except ValueError as e:
+        # Handle expected errors with appropriate status codes
+        print(f"Validation error in get_user: {str(e)}")
+        return https_fn.Response(
+            json.dumps({"error": str(e)}),
+            mimetype="application/json",
+            status=400,
+        )
     except Exception as e:
+        # Handle unexpected errors
         print(f"Error getting user profile: {str(e)}")
         return https_fn.Response(
-            json.dumps({"error": str(e)}), mimetype="application/json", status=500
+            json.dumps({"error": str(e)}),
+            mimetype="application/json",
+            status=500,
         )
+
+
+def create_or_update_firebase_user(user, password):
+    """Handle creation or update of Firebase user with proper error handling."""
+    try:
+        # Try to get existing user
+        firebase_user = auth.get_user_by_email(user["email"])
+
+        # User exists, check if we need to update properties
+        try:
+            if (
+                firebase_user.display_name != user["name"]
+                or firebase_user.photo_url != user["avatar"]
+            ):
+                # Update with photo URL if available
+                auth.update_user(
+                    firebase_user.uid,
+                    display_name=user["name"],
+                    photo_url=user["avatar"],
+                )
+        except (ValueError, FirebaseError) as e:
+            # If updating with avatar fails, try without it
+            print(f"Failed to update user with avatar, trying without: {str(e)}")
+            auth.update_user(
+                firebase_user.uid,
+                display_name=user["name"],
+            )
+    except auth.UserNotFoundError:
+        # Create new user
+        try:
+            # First try creating with avatar
+            firebase_user = auth.create_user(
+                email=user["email"],
+                display_name=user["name"],
+                photo_url=user["avatar"],
+                password=password,
+            )
+        except (ValueError, FirebaseError) as e:
+            # If creation with avatar fails, try without it
+            print(f"Failed to create user with avatar, trying without: {str(e)}")
+            firebase_user = auth.create_user(
+                email=user["email"],
+                display_name=user["name"],
+                password=password,
+            )
+
+    return firebase_user
 
 
 def exchange_token(request):
@@ -207,9 +241,7 @@ def exchange_token(request):
                 status=400,
             )
 
-
         # Exchange access code for Speckle token
-        speckle_config = get_speckle_config()
         app_id = os.environ.get("SPECKLE_APP_ID")
         app_secret = os.environ.get("SPECKLE_APP_SECRET")
         server_url = os.environ.get("SPECKLE_SERVER_URL", "https://app.speckle.systems")
@@ -268,7 +300,9 @@ def exchange_token(request):
         }
 
         profile_response = requests.post(
-            user_profile_url, headers=profile_headers, json={"query": profile_query}
+            user_profile_url,
+            headers=profile_headers,
+            json={"query": profile_query},
         )
 
         if profile_response.status_code != 200:
@@ -333,12 +367,9 @@ def exchange_token(request):
 
         if IS_FIREBASE_EMULATOR:
             FIREBASE_HOSTING_URL = "http://127.0.0.1:5000"  # Firebase Hosting Emulator
-            FIREBASE_FUNCTIONS_URL = "http://127.0.0.1:5001/{}/us-central1".format(
-                os.environ.get("GCLOUD_PROJECT")
-            )
+
         else:
             FIREBASE_HOSTING_URL = f"https://{os.environ.get('GCLOUD_PROJECT')}.web.app"
-            FIREBASE_FUNCTIONS_URL = f"https://us-central1-{os.environ.get('GCLOUD_PROJECT')}.cloudfunctions.net"
 
         # Redirect URL for authentication callback
         redirect_url = f"{FIREBASE_HOSTING_URL}?authenticated={authenticated}&ft={custom_token_str}&sst={speckle_token}&ssrt={refresh_token}&suid={user_data['id']}"
@@ -350,8 +381,11 @@ def exchange_token(request):
     except Exception as e:
         print(f"Token exchange error: {str(e)}")
         return https_fn.Response(
-            json.dumps({"error": str(e)}), mimetype="application/json", status=500
+            json.dumps({"error": str(e)}),
+            mimetype="application/json",
+            status=500,
         )
+
 
 """
 This Cloud Function uses Firebase Admin SDK with secure credentials loaded 

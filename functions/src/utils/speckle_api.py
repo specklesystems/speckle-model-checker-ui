@@ -1,7 +1,6 @@
 import requests
 import logging
 from typing import Dict, List, Optional
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +34,6 @@ class SpeckleAPI:
             raise
 
     def get_user_projects_with_models(self) -> List[Dict]:
-
         query = """
           query UserProjects ($filter: UserProjectsFilter) {
               activeUser {
@@ -194,18 +192,18 @@ class SpeckleAPI:
 def get_user_projects(token: str, host: str = "https://app.speckle.systems"):
     """
     Helper function to get user projects with models.
-    
+
     Args:
         token (str): Speckle auth token
         host (str): Speckle server URL
-        
+
     Returns:
         list: List of project objects
     """
     try:
         api = SpeckleAPI(token=token, host=host)
         projects = api.get_user_projects_with_models()
-        
+
         # Log info for debugging
         if projects:
             print(f"Found {len(projects)} projects")
@@ -217,6 +215,7 @@ def get_user_projects(token: str, host: str = "https://app.speckle.systems"):
         print(f"Error in get_user_projects: {str(e)}")
         # Return empty list on error so template can still render
         return []
+
 
 def get_project_details(
     token: str, project_id: str, host: str = "https://app.speckle.systems"

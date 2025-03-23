@@ -1,18 +1,15 @@
 from firebase_functions import https_fn
 from google.cloud import firestore
-from firebase_admin import auth
-import json
-from ..auth.token_verification import verify_firebase_token
-from ..utils.jinja_env import render_template
+
 from ..utils.firestore_utils import (
-    get_ruleset,
     create_ruleset,
-    update_ruleset,
     delete_ruleset,
+    get_rules_for_ruleset,
+    get_ruleset,
     safe_verify_id_token,
-    get_rules_for_ruleset
+    update_ruleset,
 )
-from ..utils.speckle_api import get_project_details
+from ..utils.jinja_env import render_template
 
 
 # Get Speckle token for a user from Firestore
@@ -29,61 +26,6 @@ def get_speckle_token_for_user(user_id):
         return None
 
 
-# def get_ruleset_edit_form(request, ruleset_id):
-#     """Return HTML for editing a ruleset."""
-#     try:
-
-#         # Get form data
-#         form_data = request.form
-#         project_id = form_data.get("projectId")
-#         name = form_data.get("name")
-#         description = form_data.get("description", "")
-
-#         # Get auth header
-#         auth_header = request.headers.get("Authorization")
-#         if not auth_header or not auth_header.startswith("Bearer "):
-#             return https_fn.Response(
-#                 render_template("error.html", message="Unauthorized"),
-#                 mimetype="text/html",
-#                 status=401,
-#             )
-
-#         id_token = auth_header.split("Bearer ")[1]
-#         decoded_token = safe_verify_id_token(id_token)
-#         user_id = decoded_token["uid"]
-
-#         # Get the ruleset
-#         ruleset = get_ruleset(ruleset_id)
-
-#         if not ruleset:
-#             return https_fn.Response(
-#                 render_template("error.html", message="Ruleset not found"),
-#                 mimetype="text/html",
-#                 status=404,
-#             )
-
-#         # Verify ownership
-#         if ruleset.get("userId") != user_id:
-#             return https_fn.Response(
-#                 render_template(
-#                     "error.html",
-#                     message="You don't have permission to edit this ruleset",
-#                 ),
-#                 mimetype="text/html",
-#                 status=403,
-#             )
-
-
-#         # Return the form
-#         return https_fn.Response(
-#             render_template("edit_ruleset.html", ruleset=ruleset), mimetype="text/html"
-#         )
-#     except Exception as e:
-#         return https_fn.Response(
-#             render_template("error.html", message=f"Error loading ruleset: {str(e)}"),
-#             mimetype="text/html",
-#             status=500,
-#         )
 def get_ruleset_edit_form(request, ruleset_id):
     """Return HTML for editing a ruleset."""
     try:
@@ -102,7 +44,6 @@ def get_ruleset_edit_form(request, ruleset_id):
 
         # Get the ruleset
         ruleset = get_ruleset(ruleset_id)
-
 
         if not ruleset:
             return https_fn.Response(
@@ -128,7 +69,10 @@ def get_ruleset_edit_form(request, ruleset_id):
         # Return the template with both ruleset and rules
         return https_fn.Response(
             render_template(
-                "edit_ruleset.html", ruleset=ruleset, rules=rules, ruleset_id=ruleset_id
+                "edit_ruleset.html",
+                ruleset=ruleset,
+                rules=rules,
+                ruleset_id=ruleset_id,
             ),
             mimetype="text/html",
         )
@@ -143,7 +87,6 @@ def get_ruleset_edit_form(request, ruleset_id):
 def create_new_ruleset(request):
     """Create a new ruleset."""
     try:
-
         # Get form data
         form_data = request.form
         project_id = form_data.get("projectId")
@@ -283,9 +226,6 @@ def delete_ruleset_handler(request, ruleset_id):
                 mimetype="text/html",
                 status=403,
             )
-
-        # Save project ID before deletion
-        project_id = ruleset.get("projectId")
 
         # Delete the ruleset
         delete_ruleset(ruleset_id)

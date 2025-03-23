@@ -1,6 +1,11 @@
-from firebase_admin import auth
-from google.cloud import firestore
 import datetime
+import json
+import traceback
+from functools import wraps
+
+from firebase_admin import auth
+from firebase_functions import https_fn
+from google.cloud import firestore
 
 # Verify challenge exists and hasn't been used
 db = firestore.Client()
@@ -23,12 +28,8 @@ def get_rulesets_for_project(user_id, project_id):
     return rulesets
 
 
-import traceback
-
-
 def fetch_rulesets(db, user_id, project_id):
     try:
-
         query = (
             db.collection("ruleSets")
             .where("userId", "==", user_id)
@@ -63,7 +64,7 @@ def fetch_rulesets(db, user_id, project_id):
 
         return rulesets
 
-    except Exception as e:
+    except Exception:
         print("An error occurred while fetching or formatting rulesets:")
         traceback.print_exc()
         return []
@@ -117,7 +118,7 @@ def safe_verify_id_token(id_token):
         return auth.verify_id_token(id_token)
     except Exception as e:
         if "Token used too early" in str(e):
-            time.sleep(1)  # wait 1 second and retry
+            datetime.sleep(1)  # wait 1 second and retry
             return auth.verify_id_token(id_token)
         else:
             raise e
@@ -210,7 +211,10 @@ def toggle_ruleset_sharing(ruleset_id):
     is_shared = not ruleset.get("isShared", False)
 
     # Update sharing status
-    update_data = {"isShared": is_shared, "updatedAt": firestore.SERVER_TIMESTAMP}
+    update_data = {
+        "isShared": is_shared,
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+    }
 
     # Add sharedAt timestamp if newly shared
     if is_shared and not ruleset.get("sharedAt"):
@@ -417,3 +421,63 @@ def reorder_rules(ruleset_id):
 
     # Commit batch update
     batch.commit()
+
+
+# Function to get Speckle token for a user from Firestore
+def get_speckle_token_for_user(user_id):
+    """Get the Speckle token for a user from Firestore."""
+
+    try:
+        user_token_doc = db.collection("userTokens").document(user_id).get()
+        if user_token_doc.exists:
+            return user_token_doc.to_dict().get("speckleToken")
+        return None
+    except Exception:
+        return None
+
+
+def verify_firebase_token(func):
+    """
+    Decorator to verify Firebase ID token in the request.
+    Adds user_id and user_email to the request object.
+    """
+
+    @wraps(func)
+    def wrapper(request, *args, **kwargs):
+        auth_header = request.headers.get("Authorization", "")
+
+        if not auth_header.startswith("Bearer "):
+            return https_fn.Response(
+                json.dumps({"error": "Unauthorized - Missing or invalid token"}),
+                mimetype="application/json",
+                status=401,
+            )
+
+        token = auth_header.split("Bearer ")[1]
+
+        try:
+            decoded_token = auth.verify_id_token(token)
+            request.user_id = decoded_token["uid"]
+            request.user_email = decoded_token.get("email")
+            return func(request, *args, **kwargs)
+
+        except auth.InvalidIdTokenError:
+            return https_fn.Response(
+                json.dumps({"error": "Unauthorized - Invalid token"}),
+                mimetype="application/json",
+                status=401,
+            )
+        except auth.ExpiredIdTokenError:
+            return https_fn.Response(
+                json.dumps({"error": "Unauthorized - Token expired"}),
+                mimetype="application/json",
+                status=401,
+            )
+        except Exception as e:
+            return https_fn.Response(
+                json.dumps({"error": f"Unauthorized - {str(e)}"}),
+                mimetype="application/json",
+                status=401,
+            )
+
+    return wrapper

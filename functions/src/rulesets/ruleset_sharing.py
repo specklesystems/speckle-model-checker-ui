@@ -1,13 +1,14 @@
 from firebase_functions import https_fn
-import json
-from ..auth.token_verification import verify_firebase_token
-from ..utils.jinja_env import render_template
+
+from ..projects.project_routes import get_location
 from ..utils.firestore_utils import (
+    get_rules_for_ruleset,
     get_ruleset,
-    toggle_ruleset_sharing,
     get_shared_ruleset,
     safe_verify_id_token,
+    toggle_ruleset_sharing,
 )
+from ..utils.jinja_env import render_template
 
 
 def get_share_dialog(request, ruleset_id):
@@ -37,18 +38,14 @@ def get_share_dialog(request, ruleset_id):
                 status=403,
             )
 
-        # Get host URL for generating shared links
-        host_url = request.headers.get("Host", "")
-        if not host_url.startswith("http"):
-            protocol = "https" if not host_url.startswith("localhost") else "http"
-            location_origin = f"{protocol}://{host_url}"
-        else:
-            location_origin = host_url
+        location_origin = get_location(request)
 
         # Return the dialog
         return https_fn.Response(
             render_template(
-                "share_dialog.html", ruleset=ruleset, location_origin=location_origin
+                "share_dialog.html",
+                ruleset=ruleset,
+                location_origin=location_origin,
             ),
             mimetype="text/html",
         )
@@ -101,8 +98,8 @@ def toggle_ruleset_sharing_handler(request, ruleset_id):
 
         # Toggle sharing
         toggle_ruleset_sharing(ruleset_id)
-
-        ruleset["isShared"] = not ruleset.get("isShared", False)
+        ruleset = get_ruleset(ruleset_id)
+        ruleset["rules"] = get_rules_for_ruleset(ruleset["id"])
 
         # Get host URL for generating shared links
         host_url = request.headers.get("Host", "")
@@ -157,7 +154,9 @@ def get_shared_ruleset_view(request, ruleset_id):
         )
     except Exception as e:
         return https_fn.Response(
-            f"Error serving shared ruleset: {str(e)}", mimetype="text/plain", status=500
+            f"Error serving shared ruleset: {str(e)}",
+            mimetype="text/plain",
+            status=500,
         )
 
 
@@ -212,8 +211,8 @@ def generate_ruleset_tsv(ruleset):
             row.append(condition.get("predicate", ""))  # Predicate
             row.append(condition.get("value", ""))  # Value
 
-            if (
-                len(row) > 1 and condition_number == len(rule.get("conditions", []))
+            if len(row) > 1 and condition_number == len(
+                rule.get("conditions", [])
             ):  # This is the first row (just became false)
                 row.append(rule.get("message", ""))  # Message
                 row.append(rule.get("severity", "Error"))  # Severity

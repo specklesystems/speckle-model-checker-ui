@@ -25,11 +25,12 @@
     {% for project in projects %}
     <div class="project-card border border-gray-200 rounded-lg overflow-hidden shadow-sm">
       <!-- Project Header -->
-      <div class="project-header bg-gray-50 p-4 flex justify-between items-center cursor-pointer"
+      <div class="project-header bg-gray-50 p-4 flex relative justify-between items-stretch cursor-pointer"
         data-project-id="{{ project.id }}">
-        <div>
-          <h3 class="text-lg font-medium text-gray-800">{{ project.name }}</h3>
+        <div class="flex-1 min-w-0 mr-3">
+          <h3 class="text-lg font-medium text-gray-800 truncate">{{ project.name }}</h3>
           <div class="text-sm text-gray-600 mt-1">
+            <!-- <span class="mx-1"></span> -->
             <span>Models:
               {% if project.models and project.models.totalCount %}
               {{ project.models.totalCount }}
@@ -37,16 +38,16 @@
               0
               {% endif %}
             </span>
-            <span class="mx-1">|</span>
             {% if project.description %}
-            <span class="truncate max-w-md">{{ project.description }}</span>
+            <span class="truncate block">{{ project.description }}</span>
             {% else %}
-            <span class="italic">No description</span>
+            <!-- <span class="italic">No description</span> -->
             {% endif %}
           </div>
         </div>
 
-        <div class="flex items-center space-x-2">
+        <!-- Absolute positioned buttons in the top right -->
+        <div class="absolute top-5 right-4 flex space-x-2">
           {% if project.models and project.models.totalCount and project.models.totalCount > 0 %}
           <button class="toggle-btn p-1.5 bg-gray-200 text-gray-700 rounded-full" aria-expanded="false"
             data-toggle="models-{{ project.id }}" onclick="event.stopPropagation();">
@@ -57,7 +58,8 @@
           </button>
           {% endif %}
 
-          <button class="px-4 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium"
+          <button
+            class="px-4 py-1.5 bg-primary text-white rounded hover:bg-primary-dark text-sm font-medium whitespace-nowrap"
             onclick="Projects.getProjectRulesets('{{ project.id }}', '#main-content', event )">
             Select
           </button>

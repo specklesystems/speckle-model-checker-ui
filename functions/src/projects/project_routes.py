@@ -1,29 +1,16 @@
 from firebase_functions import https_fn
-from firebase_admin import auth
 from google.cloud import firestore
-import json
-from ..auth.token_verification import verify_firebase_token
-from ..utils.jinja_env import render_template
-from ..utils.speckle_api import get_user_projects, get_project_details
+
 from ..utils.firestore_utils import (
-    get_rulesets_for_project,
-    safe_verify_id_token,
     get_rules_for_ruleset,
+    get_rulesets_for_project,
+    get_speckle_token_for_user,
+    safe_verify_id_token,
 )
+from ..utils.jinja_env import render_template
+from ..utils.speckle_api import get_project_details, get_user_projects
 
-
-# Function to get Speckle token for a user from Firestore
-def get_speckle_token_for_user(user_id):
-    """Get the Speckle token for a user from Firestore."""
-    db = firestore.Client()
-
-    try:
-        user_token_doc = db.collection("userTokens").document(user_id).get()
-        if user_token_doc.exists:
-            return user_token_doc.to_dict().get("speckleToken")
-        return None
-    except Exception:
-        return None
+db = firestore.Client()
 
 
 def get_user_projects_view(request):
@@ -71,6 +58,30 @@ def get_user_projects_view(request):
         )
 
 
+def get_location(request):
+    # Get host URL for generating shared links
+    host_url = request.headers.get("Host", "")
+
+    # Check if running in emulator mode with localhost
+    if ("localhost" in host_url or "127.0.0.1" in host_url) and ":" in host_url:
+        # Extract host without port
+        base_host = host_url.split(":")[0]
+        # Force the port to be 5000 (hosting emulator) instead of 5001 (functions emulator)
+        host_url = f"{base_host}:5000"
+
+    # Complete the URL with protocol if needed
+    if not host_url.startswith("http"):
+        protocol = (
+            "https"
+            if not ("localhost" in host_url or "127.0.0.1" in host_url)
+            else "http"
+        )
+        location_origin = f"{protocol}://{host_url}"
+    else:
+        location_origin = host_url
+    return location_origin
+
+
 def get_project_with_rulesets(request):
     """Return HTML for a project with its rulesets."""
 
@@ -102,12 +113,8 @@ def get_project_with_rulesets(request):
         decoded_token = safe_verify_id_token(id_token)
         user_id = decoded_token["uid"]
 
-        print(f"Project ID: {project_id}")
-
         # Get speckle token
         speckle_token = get_speckle_token_for_user(user_id)
-
-        print(f"Speckle token: {speckle_token}")
 
         if not speckle_token:
             return https_fn.Response(
@@ -132,13 +139,7 @@ def get_project_with_rulesets(request):
         for ruleset in rulesets:
             ruleset["rules"] = get_rules_for_ruleset(ruleset["id"])
 
-        # Get host URL for generating shared links
-        host_url = request.headers.get("Host", "")
-        if not host_url.startswith("http"):
-            protocol = "https" if not host_url.startswith("localhost") else "http"
-            location_origin = f"{protocol}://{host_url}"
-        else:
-            location_origin = host_url
+        location_origin = get_location(request)
 
         # Return the rendered template
         return https_fn.Response(
@@ -151,7 +152,6 @@ def get_project_with_rulesets(request):
             mimetype="text/html",
         )
     except Exception as e:
-
         return https_fn.Response(
             render_template("error.html", message=f"Error loading project: {str(e)}"),
             mimetype="text/html",

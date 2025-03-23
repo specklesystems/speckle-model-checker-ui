@@ -1,19 +1,19 @@
+import re
+
 from firebase_functions import https_fn
-from firebase_admin import auth
 from google.cloud import firestore
-from ..auth.token_verification import verify_firebase_token
-from ..utils.jinja_env import render_template
+
 from ..utils.firestore_utils import (
+    create_rule,
+    delete_single_rule,
+    get_rule,
+    get_rules_for_ruleset,
     get_ruleset,
-    update_ruleset,
     safe_verify_id_token,
     update_single_rule,
-    create_rule,
-    get_rules_for_ruleset,
-    get_rule,
-    delete_single_rule,
 )
-import re
+from ..utils.jinja_env import render_template
+
 
 def get_rules(request, ruleset_id):
     """Return HTML for all rules in a ruleset."""
@@ -33,7 +33,6 @@ def get_rules(request, ruleset_id):
 
         # Get the ruleset
         ruleset = get_ruleset(ruleset_id)
-
 
         if not ruleset:
             return https_fn.Response(
@@ -58,7 +57,12 @@ def get_rules(request, ruleset_id):
 
         # Return the rules list
         return https_fn.Response(
-            render_template("rules_list.html", ruleset=ruleset, ruleset_id=ruleset_id, rules=rules),
+            render_template(
+                "rules_list.html",
+                ruleset=ruleset,
+                ruleset_id=ruleset_id,
+                rules=rules,
+            ),
             mimetype="text/html",
         )
 
@@ -190,7 +194,6 @@ def get_edit_rule_form(request, ruleset_id, rule_id):
 def get_condition_row(index):
     """Return HTML for a new condition row."""
     try:
-
         index = int(index)
 
         # Return the condition row template
@@ -202,7 +205,8 @@ def get_condition_row(index):
     except Exception as e:
         return https_fn.Response(
             render_template(
-                "error.html", message=f"Error generating condition row: {str(e)}"
+                "error.html",
+                message=f"Error generating condition row: {str(e)}",
             ),
             mimetype="text/html",
             status=500,
@@ -268,7 +272,11 @@ def create_rule_handler(request, ruleset_id):
             )
 
         # Create rule data
-        rule_data = {"message": message, "severity": severity, "conditions": conditions}
+        rule_data = {
+            "message": message,
+            "severity": severity,
+            "conditions": conditions,
+        }
 
         # Create rule in Firestore
         test = create_rule(ruleset_id, user_id, rule_data)
@@ -384,6 +392,7 @@ def update_rule_handler(request, ruleset_id, rule_id):
             mimetype="text/html",
             status=500,
         )
+
 
 def delete_rule_handler(request, ruleset_id, rule_id):
     """Delete an existing rule."""

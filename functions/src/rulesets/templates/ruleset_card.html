@@ -16,12 +16,23 @@
       <button class="p-1 text-gray-500 hover:text-green-700"
         onclick="Rulesets.toggleShareRuleset('/api/rulesets/{{ ruleset.id }}/share', '#ruleset-card-{{ ruleset.id }}', event)"
         title="Toggle Ruleset Sharing">
+        {% if ruleset.isShared %}
         <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"></path>
           <polyline points="16 6 12 2 8 6"></polyline>
           <line x1="12" y1="2" x2="12" y2="15"></line>
+          <!-- Slash across the icon -->
+          <line x1="2" y1="22" x2="22" y2="2" stroke="#ff0000" stroke-width="2"></line>
         </svg>
+        {% else %}
+        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"></path>
+          <polyline points="16 6 12 2 8 6"></polyline>
+          <line x1="12" y1="0" x2="12" y2="12"></line>
+        </svg>
+        {% endif %}
       </button>
       {% endif %}
       <button class="p-1 text-gray-500 hover:text-red-700"
@@ -60,7 +71,9 @@
 
   {% if ruleset.isShared %}
   <div class="text-xs text-gray-500 bg-gray-50 p-2 rounded mb-3 flex items-center">
-    <span class="truncate flex-1">{{ location_origin }}/shared/{{ ruleset.id }}</span>
+    <a class="truncate flex-1" href="{{ location_origin }}/shared/{{ ruleset.id }}">
+      <span class="truncate flex-1">/shared/{{ ruleset.id }}</span>
+    </a>
     <button class="ml-1 text-gray-600 hover:text-gray-800"
       onclick="UI.copyToClipboard('{{ location_origin }}/shared/{{ ruleset.id }}')">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
