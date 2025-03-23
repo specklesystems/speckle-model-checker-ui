@@ -12,20 +12,6 @@ from ..utils.firestore_utils import (
 from ..utils.jinja_env import render_template
 
 
-# Get Speckle token for a user from Firestore
-def get_speckle_token_for_user(user_id):
-    """Get the Speckle token for a user from Firestore."""
-    db = firestore.client()
-
-    try:
-        user_token_doc = db.collection("userTokens").document(user_id).get()
-        if user_token_doc.exists:
-            return user_token_doc.to_dict().get("speckleToken")
-        return None
-    except Exception:
-        return None
-
-
 def get_ruleset_edit_form(request, ruleset_id):
     """Return HTML for editing a ruleset."""
     try:
