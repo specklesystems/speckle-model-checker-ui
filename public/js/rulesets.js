@@ -141,7 +141,9 @@ const Rulesets = {
     fetch(queryUrl)
       .then((response) => {
         response.text().then((html) => {
-          document.querySelector(targetSelector).insertAdjacentHTML('beforeend', html);
+          document
+            .querySelector(targetSelector)
+            .insertAdjacentHTML('beforeend', html);
         });
       })
       .catch((error) => console.error('Fetch error:', error));
@@ -159,7 +161,7 @@ const Rulesets = {
     const row = document.querySelector(`[data-conditionIndex="${index}"]`);
     if (row) {
       row.remove();
-    }  
+    }
   },
 
   // Delete rule
@@ -206,6 +208,49 @@ const Rulesets = {
       .catch((error) => console.error('Form submission error:', error));
 
     return false;
+  },
+
+  // Share ruleset which means set prop isShared to true
+  toggleShareRuleset: function (url, targetSelector, event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+
+    API.fetchWithAuth(url, {
+      method: 'PATCH',
+    })
+      .then((html) => {
+        document.querySelector(targetSelector).outerHTML = html;
+
+        const shared =
+          new DOMParser()
+            .parseFromString(html, 'text/html')
+            .querySelector('[data-shared]')?.dataset.shared === 'True';
+
+        UI.showToast(
+          shared
+            ? 'Ruleset shared successfully'
+            : 'Ruleset unshared successfully'
+        );
+      })
+      .catch((error) => console.error('Fetch error:', error));
+  },
+
+  // Export ruleset
+  exportRuleset: function (url, targetSelector, event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+
+    API.fetchWithAuth(url, {
+      method: 'GET',
+    })
+      .then((html) => {
+        document.querySelector(targetSelector).innerHTML = html;
+      })
+      .catch((error) => console.error('Fetch error:', error));
   },
 };
 

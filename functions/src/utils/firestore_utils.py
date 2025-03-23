@@ -233,26 +233,9 @@ def get_shared_ruleset(ruleset_id):
         dict: Ruleset document if shared, None otherwise
     """
 
-    # Get the document
-    ruleset_doc = db.collection("ruleSets").document(ruleset_id).get()
+    rules = get_rules_for_ruleset(ruleset_id)
 
-    if not ruleset_doc.exists:
-        return None
-
-    ruleset = ruleset_doc.to_dict()
-
-    # Check if shared
-    if not ruleset.get("isShared", False):
-        return None
-
-    # Format the result
-    ruleset["id"] = ruleset_doc.id
-
-    # Format timestamps
-    if ruleset.get("updatedAt"):
-        ruleset["updated_at"] = ruleset["updatedAt"].strftime("%Y-%m-%d %H:%M:%S")
-
-    return ruleset
+    return rules
 
 
 def get_rules_for_ruleset(ruleset_id):

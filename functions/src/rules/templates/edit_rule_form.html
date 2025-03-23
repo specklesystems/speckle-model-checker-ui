@@ -44,19 +44,19 @@
             {% endif %}
             <select name="conditions[{{ loop.index0 }}][predicate]"
               class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
-              <option value="==" {% if condition.predicate=='==' %}selected{% endif %}>equals (==)</option>
-              <option value="!=" {% if condition.predicate=='!=' %}selected{% endif %}>not equals (!=)</option>
-              <option value=">" {% if condition.predicate=='>' %}selected{% endif %}>greater than (>)</option>
-              <option value="<" {% if condition.predicate=='<' %}selected{% endif %}>less than (<)< /option>
-              <option value=">=" {% if condition.predicate=='>=' %}selected{% endif %}>greater than or equal (>=)
-              </option>
-              <option value="<=" {% if condition.predicate=='<=' %}selected{% endif %}>less than or equal (<=)< /option>
-              <option value="contains" {% if condition.predicate=='contains' %}selected{% endif %}>contains</option>
-              <option value="not contains" {% if condition.predicate=='not contains' %}selected{% endif %}>not contains
-              </option>
-              <option value="starts with" {% if condition.predicate=='starts with' %}selected{% endif %}>starts with
-              </option>
-              <option value="ends with" {% if condition.predicate=='ends with' %}selected{% endif %}>ends with</option>
+              <option value="exists">exists</option>
+      <option value="greater than">greater than</option>
+      <option value="less than">less than</option>
+      <option value="in range">in range</option>
+      <option value="in list">in list</option>
+      <option value="equal to">equal to</option>
+      <option value="not equal to">not equal to</option>
+      <option value="is true">is true</option>
+      <option value="is false">is false</option>
+      <option value="is like">is like</option>
+      <option value="identical to">identical to</option>
+      <option value="contains">contains</option>
+      <option value="does not contain">does not contain</option>
             </select>
           </div>
 

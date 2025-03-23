@@ -138,30 +138,29 @@ def delete_ruleset_fn(req: https_fn.Request) -> https_fn.Response:
     return delete_ruleset_handler(req, ruleset_id)
 
 
-# Ruleset Sharing Functions
-@https_fn.on_request(cors=cors_config)
-def get_share_dialog_fn(req: https_fn.Request) -> https_fn.Response:
-    ruleset_id = (
-        req.args.get("ruleset_id") or req.path.split("/share")[-2].split("/")[-1]
-    )
-    return get_share_dialog(req, ruleset_id)
-
-
 @https_fn.on_request(cors=cors_config)
 def toggle_sharing_fn(req: https_fn.Request) -> https_fn.Response:
     ruleset_id = (
         req.args.get("ruleset_id")
-        or req.path.split("/toggle-sharing")[-2].split("/")[-1]
+        or req.path.split("/share")[0].split("/")[-1]
     )
+
     return toggle_ruleset_sharing_handler(req, ruleset_id)
 
 
 @https_fn.on_request(cors=cors_config)
 def get_shared_ruleset_fn(req: https_fn.Request) -> https_fn.Response:
+    
+    parts = req.path.split("/")
+    print(f"Request path: {req.path}")
+    print(f"Parts: {parts}")
+    
     ruleset_id = (
         req.args.get("ruleset_id")
-        or req.path.split("/shared-rule-sets/")[-1].split("/")[0]
+        or req.path.split("/shared/")[-1].split("/")[0]
     )
+
+    print(f"Ruleset ID: {ruleset_id}")
     return get_shared_ruleset_view(req, ruleset_id)
 
 

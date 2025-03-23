@@ -49,10 +49,6 @@
       },
       {
         "source": "/api/rulesets/*/share",
-        "function": "get_share_dialog_fn"
-      },
-      {
-        "source": "/api/rulesets/*/toggle-sharing",
         "function": "toggle_sharing_fn"
       },
       {
@@ -80,7 +76,7 @@
         "function": "get_ruleset_fn"
       },
       {
-        "source": "/api/shared-rule-sets/*",
+        "source": "/shared/*",
         "function": "get_shared_ruleset_fn"
       },
       {

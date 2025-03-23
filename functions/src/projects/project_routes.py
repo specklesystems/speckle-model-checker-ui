@@ -132,9 +132,22 @@ def get_project_with_rulesets(request):
         for ruleset in rulesets:
             ruleset["rules"] = get_rules_for_ruleset(ruleset["id"])
 
+        # Get host URL for generating shared links
+        host_url = request.headers.get("Host", "")
+        if not host_url.startswith("http"):
+            protocol = "https" if not host_url.startswith("localhost") else "http"
+            location_origin = f"{protocol}://{host_url}"
+        else:
+            location_origin = host_url
+
         # Return the rendered template
         return https_fn.Response(
-            render_template("project_details.html", project=project, rulesets=rulesets),
+            render_template(
+                "project_details.html",
+                location_origin=location_origin,
+                project=project,
+                rulesets=rulesets,
+            ),
             mimetype="text/html",
         )
     except Exception as e:
