@@ -75,18 +75,14 @@
   {% if ruleset.rules %}
   <div class="text-xs text-gray-500 bg-gray-50 p-2 rounded mb-3">
     <div class="flex items-center justify-between">
-      <span class="font-medium mb-1">Shared link:</span>
+      <a href="https://speckle-model-checker.web.app/shared/{{ ruleset.id }}" target="_blank"
+        title="View shared ruleset" class="text-blue-600 hover:text-blue-800 flex-1">
+        <span>/shared/{{ ruleset.id }}</span>
+      </a>
       <div class="flex space-x-2">
-        <a href="https://{{ project_id }}.web.app/shared/{{ ruleset.id }}" target="_blank" title="View shared ruleset"
-          class="text-blue-600 hover:text-blue-800">
-          <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-            <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-          </svg>
-        </a>
-        <button class="text-blue-600 hover:text-blue-800"
-          onclick="UI.copyToClipboard('https://{{ project_id }}.web.app/shared/{{ ruleset.id }}')">
+
+        <button class="text-blue-600 hover:text-blue-800" title="Copy link to clipboard"
+          onclick="UI.copyToClipboard('https://speckle-model-checker.web.app/shared/{{ ruleset.id }}')">
           <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
             <path d="M8 2a1 1 0 000 2h2a1 1 0 100-2H8z" />
             <path d="M3 5a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm2 0v10h10V5H5z" />
