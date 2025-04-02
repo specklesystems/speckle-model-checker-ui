@@ -173,7 +173,9 @@ const UI = {
       if (user.photoURL) {
         // swap the default avatar, an svg, with an image with the user's photo
         document.getElementById('user-avatar').classList.remove('hidden');
-        document.getElementById('user-avatar-placeholder').classList.add('hidden');
+        document
+          .getElementById('user-avatar-placeholder')
+          .classList.add('hidden');
         document.getElementById('user-avatar').src = user.photoURL;
       }
     } else {
@@ -261,6 +263,16 @@ const UI = {
 
   // Copy to clipboard utility
   copyToClipboard: function (text) {
+    // If text starts with a Cloud Function URL, replace it with the main application URL
+    if (text && text.includes('.a.run.app/')) {
+      // Extract the path after the Cloud Function domain
+      const pathMatch = text.match(/\.a\.run\.app(\/.*)/);
+      if (pathMatch && pathMatch[1]) {
+        // Replace with the main application URL
+        text = 'https://speckle-model-checker.web.app' + pathMatch[1];
+      }
+    }
+
     navigator.clipboard
       .writeText(text)
       .then(() => {

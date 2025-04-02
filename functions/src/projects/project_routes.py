@@ -59,27 +59,30 @@ def get_user_projects_view(request):
 
 
 def get_location(request):
-    # Get host URL for generating shared links
-    host_url = request.headers.get("Host", "")
+    """
+    Get the base URL of the application for generating shared links.
+    Returns the main hosting URL rather than the Cloud Function URL.
+    """
+    # Get project ID from environment
+    import os
 
-    # Check if running in emulator mode with localhost
-    if ("localhost" in host_url or "127.0.0.1" in host_url) and ":" in host_url:
-        # Extract host without port
-        base_host = host_url.split(":")[0]
-        # Force the port to be 5000 (hosting emulator) instead of 5001 (functions emulator)
-        host_url = f"{base_host}:5000"
+    project_id = os.environ.get("GCLOUD_PROJECT", "speckle-model-checker")
 
-    # Complete the URL with protocol if needed
-    if not host_url.startswith("http"):
-        protocol = (
-            "https"
-            if not ("localhost" in host_url or "127.0.0.1" in host_url)
-            else "http"
-        )
-        location_origin = f"{protocol}://{host_url}"
-    else:
-        location_origin = host_url
-    return location_origin
+    # Check if running in emulator mode
+    if (
+        "FUNCTIONS_EMULATOR" in os.environ
+        and os.environ.get("FUNCTIONS_EMULATOR") == "true"
+    ):
+        # Extract host without port from header
+        host_url = request.headers.get("Host", "localhost:5000")
+        if ":" in host_url:
+            # Force the port to 5000 (hosting emulator) instead of function emulator port
+            base_host = host_url.split(":")[0]
+            host_url = f"{base_host}:5000"
+        return f"http://{host_url}"
+
+    # In production, use the Firebase Hosting URL instead of the Cloud Function URL
+    return f"https://{project_id}.web.app"
 
 
 def get_project_with_rulesets(request):
