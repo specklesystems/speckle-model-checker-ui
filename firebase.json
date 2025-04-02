@@ -77,13 +77,15 @@
       },
       {
         "source": "/shared/*",
-        "function": "get_shared_ruleset_fn"
+        "function": "get_shared_ruleset_fn",
+        "region": "us-central1"
       },
       {
         "source": "**",
         "destination": "/index.html"
       }
     ]
+    // Removed custom headers section since we're setting the headers directly in the function
   },
   "functions": {
     "source": "functions",

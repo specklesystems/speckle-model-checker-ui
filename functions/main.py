@@ -147,17 +147,43 @@ def toggle_sharing_fn(req: https_fn.Request) -> https_fn.Response:
     return toggle_ruleset_sharing_handler(req, ruleset_id)
 
 
+# @https_fn.on_request(cors=cors_config)
+# def get_shared_ruleset_fn(req: https_fn.Request) -> https_fn.Response:
+#     parts = req.path.split("/")
+#     print(f"Request path: {req.path}")
+#     print(f"Parts: {parts}")
+
+#     ruleset_id = (
+#         req.args.get("ruleset_id") or req.path.split("/shared/")[-1].split("/")[0]
+#     )
+
+
+#     print(f"Ruleset ID: {ruleset_id}")
+#     return get_shared_ruleset_view(req, ruleset_id)
 @https_fn.on_request(cors=cors_config)
 def get_shared_ruleset_fn(req: https_fn.Request) -> https_fn.Response:
-    parts = req.path.split("/")
-    print(f"Request path: {req.path}")
-    print(f"Parts: {parts}")
+    """Directly serve TSV for shared rulesets to support automation"""
+    # Extract ruleset ID from path
+    path_parts = req.path.split("/")
+    print(f"Shared ruleset request path: {req.path}")
 
-    ruleset_id = (
-        req.args.get("ruleset_id") or req.path.split("/shared/")[-1].split("/")[0]
-    )
+    # Find 'shared' in the path and get the next part as the ruleset ID
+    try:
+        shared_index = path_parts.index("shared")
+        if shared_index + 1 < len(path_parts):
+            ruleset_id = path_parts[shared_index + 1]
+        else:
+            ruleset_id = req.args.get("ruleset_id")
+    except ValueError:
+        # If 'shared' not in path, try to get from query string
+        ruleset_id = req.args.get("ruleset_id")
 
-    print(f"Ruleset ID: {ruleset_id}")
+    if not ruleset_id:
+        return https_fn.Response(
+            "Missing ruleset ID", mimetype="text/plain", status=400
+        )
+
+    print(f"Serving shared ruleset TSV for ID: {ruleset_id}")
     return get_shared_ruleset_view(req, ruleset_id)
 
 

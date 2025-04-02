@@ -1,10 +1,11 @@
 from firebase_functions import https_fn
+from io import StringIO
+import csv
 
 from ..projects.project_routes import get_location
 from ..utils.firestore_utils import (
     get_rules_for_ruleset,
     get_ruleset,
-    get_shared_ruleset,
     safe_verify_id_token,
     toggle_ruleset_sharing,
 )
@@ -14,8 +15,18 @@ from ..utils.jinja_env import render_template
 def get_share_dialog(request, ruleset_id):
     """Return HTML for the sharing dialog."""
     try:
-        # Get user info from request
-        user_id = request.user_id
+        # Get auth header
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return https_fn.Response(
+                render_template("error.html", message="Unauthorized"),
+                mimetype="text/html",
+                status=401,
+            )
+
+        id_token = auth_header.split("Bearer ")[1]
+        decoded_token = safe_verify_id_token(id_token)
+        user_id = decoded_token["uid"]
 
         # Get the ruleset
         ruleset = get_ruleset(ruleset_id)
@@ -129,28 +140,43 @@ def toggle_ruleset_sharing_handler(request, ruleset_id):
 def get_shared_ruleset_view(request, ruleset_id):
     """Return TSV for a publicly shared ruleset."""
     try:
-        # Get the shared ruleset (only returns if it's shared)
+        # Get the ruleset
         ruleset = get_ruleset(ruleset_id)
-        rules = get_shared_ruleset(ruleset_id)
 
-        if not rules:
+        if not ruleset:
             return https_fn.Response(
-                "This ruleset is not available or not shared.",
+                "Ruleset not found",
                 mimetype="text/plain",
                 status=404,
             )
 
+        # Verify the ruleset is shared
+        if not ruleset.get("isShared", False):
+            return https_fn.Response(
+                "This ruleset is not publicly shared",
+                mimetype="text/plain",
+                status=403,
+            )
+
+        # Get the rules
+        rules = get_rules_for_ruleset(ruleset_id)
         ruleset["rules"] = rules
 
-        # Generate TSV
+        # Generate TSV content
         tsv_content, filename = generate_ruleset_tsv(ruleset)
 
-        # Return TSV file
+        # Create a proper filename using the ruleset name
+        safe_name = ruleset.get("name", "ruleset").replace(" ", "_").lower()
+        download_filename = f"{safe_name}.tsv"
+
+        # Return TSV file directly - this is important for automation
         return https_fn.Response(
             tsv_content,
             mimetype="text/tab-separated-values",
-            # mimetype="text/plain",
-            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+            headers={
+                "Content-Disposition": f'attachment; filename="{download_filename}"',
+                "Content-Type": "text/tab-separated-values",
+            },
         )
     except Exception as e:
         return https_fn.Response(
@@ -170,9 +196,6 @@ def generate_ruleset_tsv(ruleset):
     Returns:
         tuple: (tsv_content, filename)
     """
-    import csv
-    from io import StringIO
-
     # Generate TSV
     output = StringIO()
     writer = csv.writer(output, delimiter="\t")
@@ -180,13 +203,13 @@ def generate_ruleset_tsv(ruleset):
     # Write header
     writer.writerow(
         [
-            "Rule Number",
+            "Rule #",
             "Logic",
-            "Property Name",
+            "Property Path",
             "Predicate",
             "Value",
-            "Message",
             "Severity",
+            "Message",
         ]
     )
 
@@ -196,7 +219,6 @@ def generate_ruleset_tsv(ruleset):
         # First condition row includes the rule number, severity, and message
         first_condition = True
 
-        condition_number = 1
         for condition in rule.get("conditions", []):
             row = []
 
@@ -211,17 +233,14 @@ def generate_ruleset_tsv(ruleset):
             row.append(condition.get("predicate", ""))  # Predicate
             row.append(condition.get("value", ""))  # Value
 
-            if len(row) > 1 and condition_number == len(
-                rule.get("conditions", [])
-            ):  # This is the first row (just became false)
-                row.append(rule.get("message", ""))  # Message
+            if first_condition:
                 row.append(rule.get("severity", "Error"))  # Severity
+                row.append(rule.get("message", ""))  # Message
             else:
                 row.append("")  # Empty severity for additional conditions
                 row.append("")  # Empty message for additional conditions
 
             writer.writerow(row)
-            condition_number += 1
 
         rule_number += 1
 
