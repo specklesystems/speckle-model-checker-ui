@@ -39,7 +39,7 @@ def export_ruleset_as_tsv(request, ruleset_id):
         # Write header
         writer.writerow(
             [
-                "Rule #",
+                "Rule Number",
                 "Logic",
                 "Property Path",
                 "Predicate",

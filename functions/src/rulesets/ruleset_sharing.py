@@ -203,7 +203,7 @@ def generate_ruleset_tsv(ruleset):
     # Write header
     writer.writerow(
         [
-            "Rule #",
+            "Rule Number",
             "Logic",
             "Property Path",
             "Predicate",
