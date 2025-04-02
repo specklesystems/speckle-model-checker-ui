@@ -41,10 +41,10 @@ def export_ruleset_as_tsv(request, ruleset_id):
             [
                 "Rule Number",
                 "Logic",
-                "Property Path",
+                "Property Name",
                 "Predicate",
                 "Value",
-                "Severity",
+                "Report Severity",
                 "Message",
             ]
         )

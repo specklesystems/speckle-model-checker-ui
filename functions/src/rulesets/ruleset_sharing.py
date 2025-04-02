@@ -205,10 +205,10 @@ def generate_ruleset_tsv(ruleset):
         [
             "Rule Number",
             "Logic",
-            "Property Path",
+            "Property Name",
             "Predicate",
             "Value",
-            "Severity",
+            "Report Severity",
             "Message",
         ]
     )
