@@ -1,95 +1,69 @@
-import csv
-import io
-
 from firebase_functions import https_fn
 
-from ..utils.firestore_utils import get_ruleset, get_shared_ruleset
+from ..utils.firestore_utils import (
+    get_ruleset,
+    get_rules_for_ruleset,
+    safe_verify_id_token,
+)
+from ..utils.tsv_utils import generate_ruleset_tsv
 
 
 def export_ruleset_as_tsv(request, ruleset_id):
     """Export a ruleset as a TSV file."""
     try:
-        # Get user info from request
-        user_id = request.user_id
+        # Get user info from request (if available)
+        try:
+            auth_header = request.headers.get("Authorization")
+            if auth_header and auth_header.startswith("Bearer "):
+                id_token = auth_header.split("Bearer ")[1]
+                decoded_token = safe_verify_id_token(id_token)
+                user_id = decoded_token.get("uid")
+            else:
+                user_id = None
+        except Exception:
+            user_id = None
 
         # Get the ruleset
         ruleset = get_ruleset(ruleset_id)
 
         # If not found as a private ruleset, try as a shared ruleset
         if not ruleset:
-            ruleset = get_shared_ruleset(ruleset_id)
-
-        if not ruleset:
+            # For this function, we likely want to check if the ruleset is shared first
+            print(f"Private ruleset {ruleset_id} not found, checking if shared...")
             return https_fn.Response(
                 "Ruleset not found", mimetype="text/plain", status=404
             )
 
         # Verify ownership if not a shared ruleset
-        if not ruleset.get("isShared", False) and ruleset.get("userId") != user_id:
+        if (
+            not ruleset.get("isShared", False)
+            and user_id
+            and ruleset.get("userId") != user_id
+        ):
             return https_fn.Response(
                 "You don't have permission to export this ruleset",
                 mimetype="text/plain",
                 status=403,
             )
 
-        # Generate TSV
-        output = io.StringIO()
-        writer = csv.writer(output, delimiter="\t")
+        # Get rules
+        rules = get_rules_for_ruleset(ruleset_id)
 
-        # Write header
-        writer.writerow(
-            [
-                "Rule Number",
-                "Logic",
-                "Property Name",
-                "Predicate",
-                "Value",
-                "Report Severity",
-                "Message",
-            ]
-        )
-
-        # Write rules
-        rule_number = 1
-        for rule in ruleset.get("rules", []):
-            # First condition row includes the rule number, severity, and message
-            first_condition = True
-
-            for condition in rule.get("conditions", []):
-                row = []
-
-                if first_condition:
-                    row.append(str(rule_number))  # Rule number
-                    first_condition = False
-                else:
-                    row.append("")  # Empty rule number for additional conditions
-
-                row.append(condition.get("logic", ""))  # Logic
-                row.append(condition.get("propertyName", ""))  # Property Path
-                row.append(condition.get("predicate", ""))  # Predicate
-                row.append(condition.get("value", ""))  # Value
-
-                if first_condition:
-                    row.append(rule.get("severity", "Error"))  # Severity
-                    row.append(rule.get("message", ""))  # Message
-                else:
-                    row.append("")  # Empty severity for additional conditions
-                    row.append("")  # Empty message for additional conditions
-
-                writer.writerow(row)
-
-            rule_number += 1
+        # Generate TSV content using the shared utility
+        tsv_content, filename = generate_ruleset_tsv(ruleset, rules)
 
         # Set headers for file download
-        filename = f"{ruleset.get('name', 'ruleset').replace(' ', '_').lower()}.tsv"
-
         return https_fn.Response(
-            output.getvalue(),
+            tsv_content,
             mimetype="text/tab-separated-values",
             headers={"Content-Disposition": f'attachment; filename="{filename}"'},
         )
 
     except Exception as e:
+        import traceback
+
+        error_details = traceback.format_exc()
+        print(f"Error details: {error_details}")
         return https_fn.Response(
             f"Error exporting ruleset: {str(e)}",
             mimetype="text/plain",
@@ -101,6 +75,3 @@ def export_ruleset_as_tsv(request, ruleset_id):
 def export_ruleset_handler(request):
     ruleset_id = request.args.get("ruleset_id")  # Extract from query params
     return export_ruleset_as_tsv(request, ruleset_id)
-
-
-export_ruleset_fn = https_fn.on_request()(export_ruleset_handler)

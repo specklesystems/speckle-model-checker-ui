@@ -1,6 +1,6 @@
 from firebase_functions import https_fn
-from io import StringIO
 import csv
+from io import StringIO
 
 from ..projects.project_routes import get_location
 from ..utils.firestore_utils import (
@@ -10,6 +10,7 @@ from ..utils.firestore_utils import (
     toggle_ruleset_sharing,
 )
 from ..utils.jinja_env import render_template
+from ..utils.tsv_utils import generate_ruleset_tsv
 
 
 def get_share_dialog(request, ruleset_id):
@@ -160,25 +161,33 @@ def get_shared_ruleset_view(request, ruleset_id):
 
         # Get the rules
         rules = get_rules_for_ruleset(ruleset_id)
-        ruleset["rules"] = rules
 
-        # Generate TSV content
-        tsv_content, filename = generate_ruleset_tsv(ruleset)
-
-        # Create a proper filename using the ruleset name
-        safe_name = ruleset.get("name", "ruleset").replace(" ", "_").lower()
-        download_filename = f"{safe_name}.tsv"
+        # Try using the shared utility first
+        try:
+            # Generate TSV content using the shared utility
+            tsv_content, filename = generate_ruleset_tsv(ruleset, rules)
+        except Exception as util_error:
+            print(
+                f"Shared utility error: {util_error}. Falling back to inline generation."
+            )
+            # Fall back to inline generation if the utility fails
+            tsv_content, filename = _generate_tsv_inline(ruleset, rules)
 
         # Return TSV file directly - this is important for automation
         return https_fn.Response(
             tsv_content,
             mimetype="text/tab-separated-values",
             headers={
-                "Content-Disposition": f'attachment; filename="{download_filename}"',
+                "Content-Disposition": f'attachment; filename="{filename}"',
                 "Content-Type": "text/tab-separated-values",
             },
         )
     except Exception as e:
+        import traceback
+
+        error_details = traceback.format_exc()
+        print(f"Error in get_shared_ruleset_view: {str(e)}")
+        print(f"Error details: {error_details}")
         return https_fn.Response(
             f"Error serving shared ruleset: {str(e)}",
             mimetype="text/plain",
@@ -186,21 +195,16 @@ def get_shared_ruleset_view(request, ruleset_id):
         )
 
 
-def generate_ruleset_tsv(ruleset):
+def _generate_tsv_inline(ruleset, rules):
     """
-    Generate TSV content for a ruleset.
-
-    Args:
-        ruleset (dict): Ruleset document with rules
-
-    Returns:
-        tuple: (tsv_content, filename)
+    Inline TSV generation as a fallback.
+    Puts severity and message on the last row of each rule.
     """
     # Generate TSV
     output = StringIO()
     writer = csv.writer(output, delimiter="\t")
 
-    # Write header
+    # Write header with "Rule Number" instead of "Rule #"
     writer.writerow(
         [
             "Rule Number",
@@ -215,30 +219,52 @@ def generate_ruleset_tsv(ruleset):
 
     # Write rules
     rule_number = 1
-    for rule in ruleset.get("rules", []):
-        # First condition row includes the rule number, severity, and message
-        first_condition = True
+    for rule in rules:
+        # Get all conditions for this rule
+        conditions = rule.get("conditions", [])
 
-        for condition in rule.get("conditions", []):
+        # Skip empty rules
+        if not conditions:
+            continue
+
+        # For each condition except the last one
+        for i, condition in enumerate(conditions[:-1]):
             row = []
 
-            if first_condition:
+            # Only include rule number on first row
+            if i == 0:
                 row.append(str(rule_number))  # Rule number
-                first_condition = False
             else:
-                row.append("")  # Empty rule number for additional conditions
+                row.append("")  # Empty rule number for middle conditions
 
             row.append(condition.get("logic", ""))  # Logic
             row.append(condition.get("propertyName", ""))  # Property Path
             row.append(condition.get("predicate", ""))  # Predicate
             row.append(condition.get("value", ""))  # Value
+            row.append("")  # Empty severity for non-last conditions
+            row.append("")  # Empty message for non-last conditions
 
-            if first_condition:
-                row.append(rule.get("severity", "Error"))  # Severity
-                row.append(rule.get("message", ""))  # Message
+            writer.writerow(row)
+
+        # For the last condition, include severity and message
+        if conditions:
+            last_condition = conditions[-1]
+            row = []
+
+            # Only include rule number on first row if there was only one condition
+            if len(conditions) == 1:
+                row.append(str(rule_number))  # Rule number
             else:
-                row.append("")  # Empty severity for additional conditions
-                row.append("")  # Empty message for additional conditions
+                row.append(
+                    ""
+                )  # Empty rule number for last condition if not the only condition
+
+            row.append(last_condition.get("logic", ""))  # Logic
+            row.append(last_condition.get("propertyName", ""))  # Property Path
+            row.append(last_condition.get("predicate", ""))  # Predicate
+            row.append(last_condition.get("value", ""))  # Value
+            row.append(rule.get("severity", "Error"))  # Severity on last row
+            row.append(rule.get("message", ""))  # Message on last row
 
             writer.writerow(row)
 

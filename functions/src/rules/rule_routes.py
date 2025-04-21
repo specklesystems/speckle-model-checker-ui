@@ -13,6 +13,7 @@ from ..utils.firestore_utils import (
     update_single_rule,
 )
 from ..utils.jinja_env import render_template
+from ..utils.mapping import get_canonical_predicate
 
 
 def get_rules(request, ruleset_id):
@@ -55,6 +56,14 @@ def get_rules(request, ruleset_id):
         # Get rules from the subcollection
         rules = get_rules_for_ruleset(ruleset_id)
 
+        # Convert any symbolic storage predicates to canonical forms for display
+        for rule in rules:
+            for condition in rule.get("conditions", []):
+                if "predicate" in condition:
+                    stored_predicate = condition["predicate"]
+                    canonical_predicate = get_canonical_predicate(stored_predicate)
+                    condition["predicate"] = canonical_predicate
+
         # Return the rules list
         return https_fn.Response(
             render_template(
@@ -67,6 +76,11 @@ def get_rules(request, ruleset_id):
         )
 
     except Exception as e:
+        import traceback
+
+        error_details = traceback.format_exc()
+        print(f"Error loading rules: {str(e)}")
+        print(f"Error details: {error_details}")
         return https_fn.Response(
             render_template("error.html", message=f"Error loading rules: {str(e)}"),
             mimetype="text/html",
@@ -172,6 +186,24 @@ def get_edit_rule_form(request, ruleset_id, rule_id):
                 status=404,
             )
 
+        # Debug: Log the original rule data including predicates
+        print(f"Original rule data: {rule}")
+        print(f"Rule conditions before normalization:")
+        for i, condition in enumerate(rule.get("conditions", [])):
+            print(f"  Condition {i}: predicate = '{condition.get('predicate')}'")
+
+        # Convert any symbolic storage predicates to canonical forms
+        for condition in rule.get("conditions", []):
+            if "predicate" in condition:
+                stored_predicate = condition["predicate"]
+                canonical_predicate = get_canonical_predicate(stored_predicate)
+                condition["predicate"] = canonical_predicate
+
+        # Debug: Log the normalized rule data for template
+        print(f"Rule conditions after normalization:")
+        for i, condition in enumerate(rule.get("conditions", [])):
+            print(f"  Condition {i}: predicate = '{condition.get('predicate')}'")
+
         # Return the edit form
         return https_fn.Response(
             render_template(
@@ -184,6 +216,11 @@ def get_edit_rule_form(request, ruleset_id, rule_id):
         )
 
     except Exception as e:
+        import traceback
+
+        error_details = traceback.format_exc()
+        print(f"Error loading edit form: {str(e)}")
+        print(f"Error details: {error_details}")
         return https_fn.Response(
             render_template("error.html", message=f"Error loading form: {str(e)}"),
             mimetype="text/html",
@@ -234,21 +271,40 @@ def create_rule_handler(request, ruleset_id):
         message = form_data.get("message")
         severity = form_data.get("severity")
 
-        # Process conditions
-        conditions = []
-        for i in range(10):  # Assuming maximum 10 conditions
-            logic_key = f"conditions[{i}][logic]"
-            if logic_key not in form_data:
-                break
+        # Log the form data for debugging
+        print(f"Create rule form data: {dict(form_data)}")
 
-            conditions.append(
-                {
-                    "logic": form_data.get(f"conditions[{i}][logic]"),
-                    "propertyName": form_data.get(f"conditions[{i}][propertyName]"),
-                    "predicate": form_data.get(f"conditions[{i}][predicate]"),
-                    "value": form_data.get(f"conditions[{i}][value]"),
-                }
-            )
+        # Dynamically find all condition indexes
+        condition_indexes = set()
+        pattern = re.compile(r"conditions\[(\d+)\]\[logic\]")
+        for key in form_data.keys():
+            match = pattern.match(key)
+            if match:
+                condition_indexes.add(int(match.group(1)))
+
+        conditions = []
+        for i in sorted(condition_indexes):
+            # Extract all condition fields including predicate
+            logic = form_data.get(f"conditions[{i}][logic]")
+            property_name = form_data.get(f"conditions[{i}][propertyName]")
+            predicate = form_data.get(f"conditions[{i}][predicate]")
+            value = form_data.get(f"conditions[{i}][value]")
+
+            # Use predicate directly (already in canonical form)
+
+            # Only add valid conditions
+            if property_name and (predicate or logic == "CHECK"):
+                conditions.append(
+                    {
+                        "logic": logic,
+                        "propertyName": property_name,
+                        "predicate": predicate,
+                        "value": value,
+                    }
+                )
+
+        # Log the processed conditions for debugging
+        print(f"Processed conditions: {conditions}")
 
         # Get the ruleset to verify ownership
         ruleset = get_ruleset(ruleset_id)
@@ -271,6 +327,20 @@ def create_rule_handler(request, ruleset_id):
                 status=403,
             )
 
+        # Enforce logic rules
+        if conditions:
+            conditions[0]["logic"] = "WHERE"
+            for c in conditions[1:-1]:
+                # Only force AND if it's not the CHECK condition
+                if c["logic"] != "CHECK":
+                    c["logic"] = "AND"
+
+            # Don't change the last condition's logic if it's CHECK
+            # but ensure all other conditions aren't CHECK
+            for i in range(len(conditions) - 1):
+                if conditions[i]["logic"] == "CHECK":
+                    conditions[i]["logic"] = "AND"
+
         # Create rule data
         rule_data = {
             "message": message,
@@ -279,14 +349,19 @@ def create_rule_handler(request, ruleset_id):
         }
 
         # Create rule in Firestore
-        test = create_rule(ruleset_id, user_id, rule_data)
+        created_rule = create_rule(ruleset_id, user_id, rule_data)
 
-        print(f"Created rule with data: {test}")
+        print(f"Created rule with data: {created_rule}")
 
         # Return updated rules list
         return get_rules(request, ruleset_id)
 
     except Exception as e:
+        import traceback
+
+        error_details = traceback.format_exc()
+        print(f"Error creating rule: {str(e)}")
+        print(f"Error details: {error_details}")
         return https_fn.Response(
             render_template("error.html", message=f"Error creating rule: {str(e)}"),
             mimetype="text/html",
@@ -315,6 +390,9 @@ def update_rule_handler(request, ruleset_id, rule_id):
         message = form_data.get("message")
         severity = form_data.get("severity")
 
+        # Log the form data for debugging
+        print(f"Update rule form data: {dict(form_data)}")
+
         # Dynamically find all condition indexes
         condition_indexes = set()
         pattern = re.compile(r"conditions\[(\d+)\]\[logic\]")
@@ -325,22 +403,35 @@ def update_rule_handler(request, ruleset_id, rule_id):
 
         conditions = []
         for i in sorted(condition_indexes):
+            # Extract the predicate value - it should already be in canonical form from the UI
+            predicate = form_data.get(f"conditions[{i}][predicate]")
+
+            # Store the predicate directly (canonical form)
             conditions.append(
                 {
                     "logic": form_data.get(f"conditions[{i}][logic]"),
                     "propertyName": form_data.get(f"conditions[{i}][propertyName]"),
-                    "predicate": form_data.get(f"conditions[{i}][predicate]"),
+                    "predicate": predicate,
                     "value": form_data.get(f"conditions[{i}][value]"),
                 }
             )
+
+        # Log the processed conditions for debugging
+        print(f"Processed conditions for update: {conditions}")
 
         # Enforce logic rules
         if conditions:
             conditions[0]["logic"] = "WHERE"
             for c in conditions[1:-1]:
-                c["logic"] = "AND"
-            if len(conditions) > 1:
-                conditions[-1]["logic"] = "CHECK"
+                # Only force AND if it's not the CHECK condition
+                if c["logic"] != "CHECK":
+                    c["logic"] = "AND"
+
+            # Don't change the last condition's logic if it's CHECK
+            # but ensure all other conditions aren't CHECK
+            for i in range(len(conditions) - 1):
+                if conditions[i]["logic"] == "CHECK":
+                    conditions[i]["logic"] = "AND"
 
         # Get the ruleset to verify ownership
         ruleset = get_ruleset(ruleset_id)
@@ -387,6 +478,11 @@ def update_rule_handler(request, ruleset_id, rule_id):
         return get_rules(request, ruleset_id)
 
     except Exception as e:
+        import traceback
+
+        error_details = traceback.format_exc()
+        print(f"Error updating rule: {str(e)}")
+        print(f"Error details: {error_details}")
         return https_fn.Response(
             render_template("error.html", message=f"Error updating rule: {str(e)}"),
             mimetype="text/html",
