@@ -1,6 +1,10 @@
 {
   "folders": [
     {
+      "name": "model-checker",
+      "path": "./cloudrun"
+    },
+    {
       "path": "./functions",
       "name": "functions"
     },
