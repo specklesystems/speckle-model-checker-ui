@@ -5,9 +5,6 @@
     "context": ".."
   },
   "features": {
-    "ghcr.io/devcontainers/features/python:1": {
-      "version": "3.11"
-    },
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/dhoeric/features/google-cloud-cli:1": {}
   },
@@ -21,16 +18,18 @@
         "ms-python.black-formatter"
       ],
       "settings": {
-        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.defaultInterpreterPath": "/usr/local/bin/python3.13",
         "python.linting.enabled": true,
         "python.formatting.provider": "black",
-        "editor.formatOnSave": true
+        "editor.formatOnSave": true,
+        "terminal.integrated.defaultProfile.linux": "zsh"
       }
     }
   },
   "forwardPorts": [
     8080
   ],
-  "postCreateCommand": "pip install -r cloudrun/requirements.txt",
-  "remoteUser": "vscode"
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": true,
+  "postCreateCommand": "pip install --user black pylint pytest && echo 'export PATH=$PATH:$HOME/.local/bin' >> ~/.zshrc && bash -c 'if [ -f \"$HOME/.config/gcloud/configurations/config_devcontainer\" ] || [ -f \"../.gcloud-config\" ]; then echo \"Using existing gcloud config\"; [ -f \"../.gcloud-config\" ] && cp -r ../.gcloud-config/* $HOME/.config/gcloud/ 2>/dev/null; else gcloud auth login --no-launch-browser || true && gcloud config configurations create devcontainer 2>/dev/null || true && gcloud init --skip-diagnostics --console-only || true && mkdir -p ../.gcloud-config/ && cp -r $HOME/.config/gcloud/* ../.gcloud-config/ 2>/dev/null && echo \"Created local .gcloud-config - add to .gitignore\"; fi'"
 }
