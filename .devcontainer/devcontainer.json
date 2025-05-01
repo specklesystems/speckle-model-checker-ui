@@ -1,12 +1,23 @@
 {
-  "name": "Speckle Model Checker Development",
+  "name": "Speckle Model Checker Dev",
   "build": {
-    "dockerfile": "Dockerfile",
-    "context": ".."
+    "dockerfile": "../cloudrun/Dockerfile",
+    "context": "..",
+    "target": "dev"
   },
+  "mounts": [
+    "source=gcloud-config,target=/home/vscode/.config/gcloud,type=volume",
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-    "ghcr.io/dhoeric/features/google-cloud-cli:1": {}
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true,
+      "installOhMyZsh": true,
+      "installOhMyZshConfig": true,
+      "upgradePackages": true,
+      "username": "vscode"
+    }
   },
   "customizations": {
     "vscode": {
@@ -22,7 +33,12 @@
         "python.linting.enabled": true,
         "python.formatting.provider": "black",
         "editor.formatOnSave": true,
-        "terminal.integrated.defaultProfile.linux": "zsh"
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "/usr/bin/zsh"
+          }
+        }
       }
     }
   },
@@ -31,5 +47,5 @@
   ],
   "remoteUser": "vscode",
   "updateRemoteUserUID": true,
-  "postCreateCommand": "pip install --user black pylint pytest && echo 'export PATH=$PATH:$HOME/.local/bin' >> ~/.zshrc && bash -c 'if [ -f \"$HOME/.config/gcloud/configurations/config_devcontainer\" ] || [ -f \"../.gcloud-config\" ]; then echo \"Using existing gcloud config\"; [ -f \"../.gcloud-config\" ] && cp -r ../.gcloud-config/* $HOME/.config/gcloud/ 2>/dev/null; else gcloud auth login --no-launch-browser || true && gcloud config configurations create devcontainer 2>/dev/null || true && gcloud init --skip-diagnostics --console-only || true && mkdir -p ../.gcloud-config/ && cp -r $HOME/.config/gcloud/* ../.gcloud-config/ 2>/dev/null && echo \"Created local .gcloud-config - add to .gitignore\"; fi'"
+  "postCreateCommand": "./.devcontainer/bootstrap-gcloud.sh"
 }
