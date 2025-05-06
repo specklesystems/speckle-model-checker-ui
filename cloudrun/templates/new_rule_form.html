@@ -1,0 +1,98 @@
+<div class="bg-white p-6 rounded-md border border-gray-200 mb-6">
+  <h3 class="text-lg font-medium mb-4">Add New Rule</h3>
+
+  <form onsubmit="Rulesets.addNewRule('/api/rulesets/{{ ruleset_id }}/rules', '#rules-container', event)"
+    class="space-y-4" validate>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Conditions</label>
+
+      <div id="conditions-container" class="space-y-3 mb-4">
+        <div class="condition-row grid grid-cols-4 gap-3 items-end" data-conditionIndex="0">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Logic</label>
+            <select name="conditions[0][logic]" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+              disabled>
+              <option value="WHERE" selected>WHERE</option>
+            </select>
+            <input type="hidden" name="conditions[0][logic]" value="WHERE">
+          </div>
+
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Property</label>
+            <input type="text" name="conditions[0][propertyName]"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="e.g. speckle_type"
+              required>
+          </div>
+
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Predicate</label>
+            <select name="conditions[0][predicate]" class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+              <option value="exists">exists</option>
+              <option value="greater than">greater than</option>
+              <option value="less than">less than</option>
+              <option value="in range">in range</option>
+              <option value="in list">in list</option>
+              <option value="equal to">equal to</option>
+              <option value="not equal to">not equal to</option>
+              <option value="is true">is true</option>
+              <option value="is false">is false</option>
+              <option value="is like">is like</option>
+              <option value="identical to">identical to</option>
+              <option value="contains">contains</option>
+              <option value="does not contain">does not contain</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Value</label>
+            <input type="text" name="conditions[0][value]"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="e.g. Wall" required>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <button type="button" onclick="Rulesets.addConditionRow(
+        '/api/rule/condition', 
+        '#conditions-container', 
+        event
+      )" class="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
+        Add Condition
+      </button>
+    </div>
+
+    <div class="grid grid-cols-5 gap-4 mt-6 pt-4 border-t border-gray-200">
+      <div class="col-span-4">
+        <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+        <input type="text" id="message" name="message"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+          placeholder="e.g. Walls must have a fire rating" required>
+      </div>
+
+      <div class="col-span-1">
+        <label for="severity" class="block text-sm font-medium text-gray-700 mb-1">Severity</label>
+        <select id="severity" name="severity"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+          onchange="UI.updateSeverityColor(this)" required>
+          <option value="Error" class="bg-red-50 text-red-800">Error</option>
+          <option value="Warning" class="bg-yellow-50 text-yellow-800">Warning</option>
+          <option value="Info" class="bg-blue-50 text-blue-800">Info</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="flex justify-between mt-4">
+      <button type="button" class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+        onclick="Rulesets.editRuleset('/api/rulesets/{{ ruleset_id }}', '#main-content', event)">
+        Cancel
+      </button>
+
+      <button type="submit" id="finalize-rule-btn"
+        class="px-3 py-1 bg-primary text-white rounded hover:bg-primary-dark">
+        Save Rule
+      </button>
+    </div>
+  </form>
+</div>
