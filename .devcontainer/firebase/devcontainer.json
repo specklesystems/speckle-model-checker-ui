@@ -1,29 +1,51 @@
-// .devcontainer/firebase/devcontainer.json
 {
-  "name": "Speckle • Firebase",
+  "name": "Speckle Model Checker Dev",
   "build": {
-    "dockerfile": "Dockerfile",
-    "context": "../../firebase"
+    "dockerfile": "../cloudrun/Dockerfile",
+    "context": "..",
+    "target": "dev"
   },
-  "remoteEnv": {
-    "DEVCONTAINER_NAME": "firebase"
+  "mounts": [
+    "source=gcloud-config,target=/home/vscode/.config/gcloud,type=volume",
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true,
+      "installOhMyZsh": true,
+      "installOhMyZshConfig": true,
+      "upgradePackages": true,
+      "username": "vscode"
+    }
   },
-  // bind your firebase/ folder as the project root
-  "workspaceMount": "source=${localWorkspaceFolder}/firebase,target=/workspace,type=bind",
-  "workspaceFolder": "/workspace",
   "customizations": {
     "vscode": {
       "extensions": [
-        "Firebase.vscode-firepad",
-        "ms-azuretools.vscode-docker"
-      ]
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-docker",
+        "visualstudioexptteam.vscodeintellicode",
+        "ms-python.black-formatter"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python3.13",
+        "python.linting.enabled": true,
+        "python.formatting.provider": "black",
+        "editor.formatOnSave": true,
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "/usr/bin/zsh"
+          }
+        }
+      }
     }
   },
-  // Cloud Functions emulator + Hosting emulator
   "forwardPorts": [
-    5000,
-    9005
+    8080
   ],
-  // install your JS deps
-  "postCreateCommand": "cd functions && npm install"
+  "remoteUser": "vscode",
+  "updateRemoteUserUID": true,
+  "postCreateCommand": "./.devcontainer/bootstrap-gcloud.sh"
 }
