@@ -33,10 +33,10 @@ jobs:
         with:
           filters: |
             functions:
-              - 'functions/**'
+              - 'firebase/functions/**'
             hosting:
-              - 'public/**'
-              - 'firebase.json'
+              - 'firebase/public/**'
+              - 'firebase/firebase.json'
 
       - name: Debug context SHA
         shell: bash

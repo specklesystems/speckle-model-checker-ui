@@ -19,6 +19,9 @@ jobs:
     needs: detect_changes
     if: needs.detect_changes.outputs.deploy_hosting == 'true'
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firebase
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -43,6 +46,7 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SPECKLE_MODEL_CHECKER }}
           projectId: speckle-model-checker
+          entryPoint: firebase
 
       # ✅ Report Success If Deployment Succeeds
       - name: Mark Success If Hosting Deployment Succeeds ✅
