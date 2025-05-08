@@ -46,7 +46,7 @@ itsdangerous==2.2.0
 jinja2==3.1.6
 markupsafe==3.0.2
 msgpack==1.1.0
-multidict==6.2.0
+multidict==6.4.3
 packaging==24.2
 propcache==0.3.0
 proto-plus==1.26.1
