@@ -1,6 +1,6 @@
 // .devcontainer/cloudrun/devcontainer.json
 {
-  "name": "Model Checker Dev",
+  "name": "Model Checker Dev - Cloudrun",
   "build": {
     "dockerfile": "Dockerfile",
     "context": "../.."

@@ -1,5 +1,5 @@
 {
-  "name": "Speckle Model Checker Dev",
+  "name": "Model Checker - Firebase",
   "build": {
     "dockerfile": "../cloudrun/Dockerfile",
     "context": "..",
