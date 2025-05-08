@@ -1,0 +1,40 @@
+{% if 'automate' in sourceApp %}
+<span class="automate">🤖</span>
+{% elif 'navisworks' in sourceApp %}
+<span>NAV</span>
+{% elif 'revit' in sourceApp %}
+<span>RVT</span>
+{% elif 'civil3d' in sourceApp or 'civil' in sourceApp %}
+<span>C3D</span>
+{% elif 'archicad' in sourceApp %}
+<span>AC</span>
+{% elif 'sketchup' in sourceApp %}
+<span>SU</span>
+{% elif 'rhino' in sourceApp %}
+<span>RH</span>
+{% elif 'ifc' in sourceApp %}
+<span>IFC</span>
+{% elif 'inventor' in sourceApp %}
+<span>INV</span>
+{% elif 'solidworks' in sourceApp %}
+<span>SW</span>
+{% elif 'arcgis' in sourceApp %}
+<span>GIS</span>
+{% elif 'qgis' in sourceApp %}
+<span>GIS</span>
+{% else %}
+<!-- Fallback to checking model name -->
+{% if 'navisworks' in model.name|lower %}
+<span>NAV</span>
+{% elif 'revit' in model.name|lower %}
+<span>RVT</span>
+{% elif 'civil3d' in model.name|lower %}
+<span>C3D</span>
+{% elif 'sketchup' in model.name|lower %}
+<span>SU</span>
+{% elif 'ifc' in model.name|lower %}
+<span>IFC</span>
+{% else %}
+<span>3D</span>
+{% endif %}
+{% endif %}

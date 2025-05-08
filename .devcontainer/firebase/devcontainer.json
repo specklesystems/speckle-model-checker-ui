@@ -1,0 +1,29 @@
+// .devcontainer/firebase/devcontainer.json
+{
+  "name": "Speckle • Firebase",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "../../firebase"
+  },
+  "remoteEnv": {
+    "DEVCONTAINER_NAME": "firebase"
+  },
+  // bind your firebase/ folder as the project root
+  "workspaceMount": "source=${localWorkspaceFolder}/firebase,target=/workspace,type=bind",
+  "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Firebase.vscode-firepad",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+  // Cloud Functions emulator + Hosting emulator
+  "forwardPorts": [
+    5000,
+    9005
+  ],
+  // install your JS deps
+  "postCreateCommand": "cd functions && npm install"
+}

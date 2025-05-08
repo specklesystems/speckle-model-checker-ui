@@ -1,0 +1,32 @@
+<div id="rules-container">
+  <!-- Rules Table -->
+  {% if rules %}
+  <div class="bg-white rounded-lg shadow p-4">
+    <div class="overflow-x-auto">
+      <table class="min-w-full border-collapse text-sm">
+        <thead>
+          <tr
+            class="bg-gray-50 text-left text-gray-500 uppercase tracking-wider"
+          >
+            <th class="px-3 py-2 font-medium whitespace-nowrap text-center">
+              Rule #
+            </th>
+            <th class="px-3 py-2 font-medium whitespace-nowrap">Conditions</th>
+            <th class="px-3 py-2 font-medium">Message</th>
+            <th class="px-3 py-2 font-medium">Severity</th>
+            <th class="px-3 py-2 font-medium w-16">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          {% for rule in rules %} {% with rule_index=loop.index %} {% include
+          "partials/rule_row.html" with context %} {% endwith %} {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="text-center py-10 bg-gray-50 rounded border border-gray-200">
+    <p class="text-gray-500 mb-4">No rules defined for this rule set yet.</p>
+  </div>
+  {% endif %}
+</div>

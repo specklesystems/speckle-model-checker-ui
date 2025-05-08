@@ -1,0 +1,157 @@
+<div class="bg-white p-6 rounded-md border border-gray-200 mb-6 mt-4" id="rule-form-container">
+  <h3 class="text-lg font-medium mb-4">Edit Rule</h3>
+  <form id="edit-rule-form" hx-put="/rulesets/{{ ruleset.id }}/rules/{{ rule.id }}" hx-target="#ruleset-rules"
+    hx-swap="outerHTML"
+    hx-on::after-request="document.getElementById('rule-row-{{ rule.id }}').classList.remove('bg-blue-50', 'border-l-4', 'border-blue-500'); document.querySelectorAll('#rule-row-{{ rule.id }} button').forEach(btn => btn.disabled = false)"
+    autocomplete="off" hx-include=".logic-select" hx-indicator=".htmx-indicator"
+    hx-trigger="submit[document.getElementById('conditions-list').children.length > 0]"
+    onsubmit="if(document.getElementById('conditions-list').children.length === 0) { alert('Please add at least one condition before saving the rule.'); return false; }">
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1">Conditions</label>
+      <div class="grid grid-cols-4 gap-3 mb-2">
+        <div>
+          <label class="block text-xs text-gray-500">Logic</label>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500">Property</label>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500">Predicate</label>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-500">Value</label>
+        </div>
+      </div>
+      <div id="conditions-list" class="space-y-3 mb-4">
+        {% for condition in rule.conditions %}
+        <div class="condition-row grid grid-cols-4 gap-3 items-end" data-conditionindex="{{ loop.index0 }}">
+          <div>
+
+            <select name="conditions[{{ loop.index0 }}][logic]"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm logic-select" disabled>
+              <option value="WHERE" {% if loop.index0==0 %}selected{% endif %}>WHERE</option>
+              <option value="AND" {% if loop.index0> 0 %}selected{% endif %}>AND</option>
+              <option value="CHECK">CHECK</option>
+            </select>
+            {% if loop.index0 == 0 %}
+            <input type="hidden" name="conditions[{{ loop.index0 }}][logic]" value="WHERE" class="logic-select">
+            {% endif %}
+          </div>
+          <div>
+
+            <input type="text" name="conditions[{{ loop.index0 }}][propertyName]"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="e.g. Category"
+              value="{{ condition.propertyName }}" required>
+          </div>
+          <div>
+
+            <select name="conditions[{{ loop.index0 }}][predicate]"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm predicate-select"
+              onchange="handlePredicateChange(this)">
+              <option value="exists" {% if condition.predicate=='exists' %}selected{% endif %}>exists</option>
+              <option value="greater than" {% if condition.predicate=='greater than' %}selected{% endif %}>greater than
+              </option>
+              <option value="less than" {% if condition.predicate=='less than' %}selected{% endif %}>less than</option>
+              <option value="in range" {% if condition.predicate=='in range' %}selected{% endif %}>in range</option>
+              <option value="in list" {% if condition.predicate=='in list' %}selected{% endif %}>in list</option>
+              <option value="equal to" {% if condition.predicate=='equal to' %}selected{% endif %}>equal to</option>
+              <option value="not equal to" {% if condition.predicate=='not equal to' %}selected{% endif %}>not equal to
+              </option>
+              <option value="is true" {% if condition.predicate=='is true' %}selected{% endif %}>is true</option>
+              <option value="is false" {% if condition.predicate=='is false' %}selected{% endif %}>is false</option>
+              <option value="is like" {% if condition.predicate=='is like' %}selected{% endif %}>is like</option>
+              <option value="identical to" {% if condition.predicate=='identical to' %}selected{% endif %}>identical to
+              </option>
+              <option value="contains" {% if condition.predicate=='contains' %}selected{% endif %}>contains</option>
+              <option value="does not contain" {% if condition.predicate=='does not contain' %}selected{% endif %}>does
+                not contain</option>
+            </select>
+          </div>
+          <div class="flex items-end space-x-1">
+            <div class="flex-1">
+
+              <input type="text" name="conditions[{{ loop.index0 }}][value]"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm value-input" {% if condition.predicate
+                in ['exists', 'is true' , 'is false' ] %} disabled {% else %} required {% if condition.predicate in
+                ['less than', 'greater than' ] %} type="number" placeholder="e.g. 10" {% elif
+                condition.predicate=='in range' %} placeholder="e.g. 10,20" {% elif condition.predicate=='in list' %}
+                placeholder="e.g. red, blue, green" {% elif condition.predicate=='is like' %}
+                placeholder="e.g. Walls or ^Wall$ in non-fuzzy mode" {% else %} placeholder="e.g. Walls" {% endif %} {%
+                endif %} value="{{ condition.value }}">
+            </div>
+
+            <div class="flex space-x-0.5 direction-arrows">
+              <button type="button" class="px-1.5 py-1 text-gray-600 hover:text-gray-800 up-arrow" data-direction="up">
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"
+                    clip-rule="evenodd" />
+                </svg>
+              </button>
+              <button type="button" class="px-1.5 py-1 text-gray-600 hover:text-gray-800 down-arrow"
+                data-direction="down">
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                    clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+
+            <button type="button" class="px-1.5 py-2 text-red-400 hover:text-red-600"
+              hx-delete="/api/rulesets/{{ ruleset.id }}/condition-row/{{ loop.index0 }}"
+              hx-target="closest .condition-row" hx-swap="outerHTML"
+              hx-confirm="Are you sure you want to remove this condition?">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <button type="button" class="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+        hx-get="/rulesets/{{ ruleset.id }}/rules/condition_row" hx-target="#conditions-list" hx-swap="beforeend">
+        Add Condition
+      </button>
+    </div>
+    <div class="grid grid-cols-5 gap-4 mt-6 pt-4 border-t border-gray-200">
+      <div class="col-span-4">
+        <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+        <textarea id="message" name="message"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+          placeholder="e.g. Walls must have a fire rating" required rows="1"></textarea>
+        <input type="hidden" id="auto_generated_message" name="auto_generated_message" value="">
+      </div>
+      <div class="col-span-1">
+        <label for="severity" class="block text-sm font-medium text-gray-700 mb-1">Severity</label>
+        <select id="severity" name="severity"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+          required>
+          <option value="Error" class="bg-red-50 text-red-800" {% if rule.severity=='Error' %}selected{% endif %}>Error
+          </option>
+          <option value="Warning" class="bg-yellow-50 text-yellow-800" {% if rule.severity=='Warning' %}selected{% endif
+            %}>Warning</option>
+          <option value="Info" class="bg-blue-50 text-blue-800" {% if rule.severity=='Info' %}selected{% endif %}>Info
+          </option>
+        </select>
+      </div>
+    </div>
+    <div class="flex justify-between mt-4">
+      <button type="button" class="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+        hx-get="/rulesets/{{ ruleset.id }}/rules/new" hx-target="#rule-form-container" hx-swap="outerHTML"
+        hx-on::after-request="document.getElementById('rule-row-{{ rule.id }}').classList.remove('bg-blue-50', 'border-l-4', 'border-blue-500'); document.querySelectorAll('#rule-row-{{ rule.id }} button').forEach(btn => btn.disabled = false)">
+        Cancel
+      </button>
+      <button type="submit" class="px-3 py-1 bg-primary text-white rounded hover:bg-primary-dark"
+        hx-indicator=".htmx-indicator">
+        Update Rule
+      </button>
+    </div>
+  </form>
+</div>
+
+<script src="/static/condition_row.js"></script>

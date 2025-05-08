@@ -1,0 +1,17 @@
+<div
+  id="load-more-container"
+  hx-swap-oob="true"
+  class="mt-4 flex justify-center"
+>
+  {% if has_more_projects %}
+  <button
+    hx-get="/projects?projects_cursor={{ next_projects_cursor }}"
+    hx-target="#projects-list"
+    hx-swap="beforeend"
+    hx-indicator=".htmx-indicator"
+    class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark transition-colors"
+  >
+    Load More Projects
+  </button>
+  {% endif %}
+</div>

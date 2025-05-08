@@ -69,3 +69,5 @@ node_modules/
 .dataconnect
 
 functions/*.json*
+
+**/firebase-services-account-key.json

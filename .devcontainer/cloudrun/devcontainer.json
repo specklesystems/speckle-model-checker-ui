@@ -1,0 +1,62 @@
+// .devcontainer/cloudrun/devcontainer.json
+{
+  "name": "Model Checker Dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "../.."
+  },
+  "remoteEnv": {
+    "DEVCONTAINER_NAME": "cloudrun"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "bradlc.vscode-tailwindcss",
+        "ms-azuretools.vscode-docker",
+        "charliermarsh.ruff",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": true,
+        "python.formatting.provider": "ruff",
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit",
+            "source.organizeImports": "always"
+          }
+        },
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit"
+          }
+        },
+        "[html]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit"
+          }
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "/usr/bin/zsh"
+          }
+        }
+      }
+    }
+  },
+  "forwardPorts": [
+    8000
+  ],
+  "postCreateCommand": "pip install -r backend/requirements.txt && cp /workspaces/speckle_model_checker/.devcontainer/cloudrun/zshrc.cloudrun /home/vscode/.zshrc && echo 'source ~/.zshrc' >> /home/vscode/.zshenv",
+  "remoteUser": "vscode"
+}

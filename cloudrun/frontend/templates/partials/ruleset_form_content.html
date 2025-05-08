@@ -1,0 +1,42 @@
+<div id="form-container">
+  <form id="ruleset-form"
+    hx-post="{% if is_edit %}/projects/{{ project.id }}/rulesets/{{ ruleset.id }}{% else %}/projects/{{ project.id }}/rulesets{% endif %}"
+    hx-target="body" hx-push-url="/projects/{{ project.id }}" hx-indicator=".htmx-indicator">
+    <div class="space-y-6">
+      <!-- Ruleset Name -->
+      <div>
+        <label for="name" class="block text-sm font-medium text-gray-700">Rule Set Name</label>
+        <input type="text" name="name" id="name" required
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+          value="{{ ruleset.name if ruleset else '' }}" placeholder="Enter a name for your rule set" {% if not is_edit
+          %} hx-post="/projects/{{ project.id }}/rulesets" hx-trigger="blur once" hx-target="#form-container"
+          hx-swap="outerHTML" hx-headers='{"X-Event-Type": "blur"}' {% endif %}>
+      </div>
+
+      <!-- Description -->
+      <div>
+        <label for="description" class="block text-sm font-medium text-gray-700">Description (Optional)</label>
+        <textarea name="description" id="description" rows="3"
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+          placeholder="Describe what this rule set checks for">{{ ruleset.description if ruleset else '' }}</textarea>
+      </div>
+
+      <!-- Form Actions -->
+      <div class="flex justify-end">
+        {% if is_edit %}
+        <button type="submit"
+          class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+          Save Changes
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+
+  <!-- Rules Section and Add Rule Form (outside the ruleset form) -->
+  {% if is_edit %}
+  <div id="ruleset-rules">
+    {% include "partials/ruleset_rules.html" with context %}
+  </div>
+  {% endif %}
+</div>

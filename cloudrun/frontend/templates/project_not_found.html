@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Project Not Found | Model Checker{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto mt-20">
+  <div class="bg-white rounded-lg shadow p-8 flex flex-col items-center">
+    <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M9 17v-2a4 4 0 014-4h3m4 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+    </svg>
+    <h2 class="text-2xl font-bold text-gray-800 mb-2">Project Not Found</h2>
+    <p class="text-gray-600 mb-6 text-center">The project you are looking for does not exist or you do not have access
+      to it.</p>
+    <a href="/projects"
+      class="px-6 py-3 bg-blue-600 text-white rounded font-semibold hover:bg-blue-700 transition-colors text-base">
+      Back to Projects
+    </a>
+  </div>
+</div>
+{% endblock %}

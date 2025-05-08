@@ -1,0 +1,173 @@
+<!-- Project List Content -->
+
+{% if projects %} {% for project in projects %}
+<div
+  class="project-card border border-gray-200 rounded-lg overflow-hidden shadow-sm"
+>
+  <!-- Project Header -->
+  <div
+    class="project-header bg-gray-50 p-4 flex relative justify-between items-stretch cursor-pointer"
+    data-project-id="{{ project.id }}"
+  >
+    <div class="flex-1 min-w-0 mr-3">
+      <h3 class="text-lg font-medium text-gray-800 truncate">
+        {{ project.name }}
+      </h3>
+      <div class="text-sm text-gray-600 mt-1">
+        <span
+          >Models: {% if project.models and project.models.totalCount %} {{
+          project.models.totalCount }} {% else %} 0 {% endif %}
+        </span>
+        {% if project.description %}
+        <span class="truncate block">{{ project.description }}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Absolute positioned buttons in the top right -->
+    <div class="absolute top-5 right-4 flex space-x-2">
+      {% if project.models and project.models.totalCount and
+      project.models.totalCount > 0 %}
+      <button
+        class="toggle-btn p-1.5 bg-gray-200 text-gray-700 rounded-full"
+        hx-on:click="event.stopPropagation(); document.getElementById('models-{{ project.id }}').classList.toggle('hidden'); this.querySelector('.toggle-btn-icon').style.transform = this.querySelector('.toggle-btn-icon').style.transform === 'rotate(180deg)' ? 'rotate(0deg)' : 'rotate(180deg)';"
+      >
+        <svg
+          class="w-4 h-4 toggle-btn-icon transition-transform"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 9l-7 7-7-7"
+          ></path>
+        </svg>
+      </button>
+      {% endif %}
+
+      <button
+        class="px-4 py-1.5 bg-primary text-white rounded hover:bg-primary-dark text-sm font-medium whitespace-nowrap"
+        onclick="window.location.href='/projects/{{ project.id }}'"
+      >
+        Select
+      </button>
+    </div>
+  </div>
+
+  <!-- Models Section (Initially Hidden) -->
+  {% if project.models and project.models["items"] %}
+  <div id="models-{{ project.id }}" class="hidden">
+    <div
+      class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 p-4 bg-white"
+    >
+      {% for model in project.models["items"] %} {% if model.versions and
+      model.versions["items"] and model.versions["items"]|length > 0 %}
+      <div
+        class="model-card border border-gray-200 rounded bg-white shadow-sm overflow-hidden"
+      >
+        {% if model.previewUrl %}
+        <div
+          class="h-32 bg-gray-100 bg-center bg-cover"
+          style="background-image: url('{{ model.previewUrl }}')"
+        >
+          <div
+            class="absolute top-2 right-2 bg-secondary rounded-lg shadow-sm p-1 text-xs font-medium source-badge text-white {{model.versions['items'][0].sourceApplication|lower}}"
+          >
+            {% if model.versions and model.versions["items"] and
+            model.versions["items"]|length > 0 %} {% set sourceApp =
+            model.versions["items"][0].sourceApplication|lower %} {% include
+            "partials/source_badge.html" %} {% endif %}
+          </div>
+        </div>
+        {% else %}
+        <div class="h-32 bg-gray-100 flex items-center justify-center">
+          <svg
+            class="w-10 h-10 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+            ></path>
+          </svg>
+        </div>
+        {% endif %}
+        <div class="p-3">
+          <h4
+            class="font-medium text-gray-800 mb-1 truncate"
+            title="{{ model.name }}"
+          >
+            {{ model.name }}
+          </h4>
+          {% if model.description %}
+          <p class="text-sm text-gray-600 mb-2 line-clamp-2">
+            {{ model.description }}
+          </p>
+          {% endif %}
+          <a
+            href="https://app.speckle.systems/projects/{{project.id}}/models/{{ model.id }}"
+            target="_blank"
+            class="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 mt-1"
+          >
+            <span>View in Speckle</span>
+            <svg
+              class="w-3 h-3 ml-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+              ></path>
+            </svg>
+          </a>
+        </div>
+      </div>
+      {% endif %} {% endfor %}
+    </div>
+    {% if project.models.totalCount > project.models["items"]|length %}
+    <div class="p-3 border-t border-gray-200 bg-gray-50 text-center">
+      <a
+        href="https://app.speckle.systems/projects/{{ project.id }}"
+        target="_blank"
+        class="text-sm text-blue-600 hover:text-blue-800"
+      >
+        View all {{ project.models.totalCount }} models in Speckle
+      </a>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endfor %} {% else %}
+<div class="text-center py-10 bg-gray-50 rounded border border-gray-200">
+  <svg
+    class="w-16 h-16 text-gray-400 mx-auto mb-4"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+    />
+  </svg>
+  <h3 class="text-lg font-medium text-gray-800 mb-2">No Projects Found</h3>
+  <p class="text-gray-600 mb-4">
+    You don't have any Speckle projects yet or we couldn't access them.
+  </p>
+</div>
+{% endif %}
