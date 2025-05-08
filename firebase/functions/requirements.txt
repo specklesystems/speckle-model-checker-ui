@@ -20,7 +20,7 @@ flask==3.1.0
 flask-cors==5.0.1
 functions-framework==3.8.2
 google-api-core==2.24.2
-google-api-python-client==2.164.0
+google-api-python-client==2.169.0
 google-auth==2.38.0
 google-auth-httplib2==0.2.0
 google-cloud-core==2.4.3
