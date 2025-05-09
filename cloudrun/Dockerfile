@@ -1,11 +1,11 @@
 # Builder
-FROM python:3.11-slim AS builder
+FROM python:3.13-slim AS builder
 WORKDIR /wheels
 COPY backend/requirements.txt .
 RUN python -m pip wheel --wheel-dir . -r requirements.txt
 
 # Final
-FROM python:3.11-slim
+FROM python:3.13-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /wheels /wheels
