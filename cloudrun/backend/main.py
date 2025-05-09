@@ -8,16 +8,15 @@ from datetime import datetime
 from urllib.parse import urljoin
 
 import httpx
+from auth import exchange_token, get_current_user, init_auth
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from firebase_admin import firestore
-from starlette.middleware.sessions import SessionMiddleware
-
-from auth import exchange_token, get_current_user, init_auth
 from services.tsv_service import generate_ruleset_tsv
+from starlette.middleware.sessions import SessionMiddleware
 
 # Load environment variables
 load_dotenv()
@@ -98,16 +97,17 @@ app.add_middleware(
     SessionMiddleware, secret_key=os.getenv("SESSION_SECRET_KEY", "your-secret-key")
 )
 
-# Mount static files
-app.mount("/static", StaticFiles(directory="../frontend/static"), name="static")
-
 # Templates
-templates = Jinja2Templates(directory="../frontend/templates")
+templates = Jinja2Templates(directory="./frontend/templates")
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="./frontend/static"), name="static")
 
 
 @app.get("/auth/init")
 async def auth_init(request: Request):
     """Initialize Speckle authentication"""
+    print("=== Starting auth_init function ===")
     return await init_auth(request)
 
 
