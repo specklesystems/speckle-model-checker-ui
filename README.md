@@ -4,7 +4,7 @@ A tool for checking and validating Speckle models using HTMX.
 
 ## 📦 Projects
 
-This repository contains two implementations of the Speckle Model Checker:
+This repository contains two implementations of  Speckle Model Checker:
 
 1. **[Cloud Run Implementation](cloudrun/README.md)** (Current)
 
