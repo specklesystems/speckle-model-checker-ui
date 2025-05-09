@@ -5,6 +5,8 @@
     "dockerfile": "Dockerfile",
     "context": "../.."
   },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+  "workspaceFolder": "/workspace/",
   "remoteEnv": {
     "DEVCONTAINER_NAME": "cloudrun"
   },
@@ -16,7 +18,8 @@
         "bradlc.vscode-tailwindcss",
         "ms-azuretools.vscode-docker",
         "charliermarsh.ruff",
-        "esbenp.prettier-vscode"
+        "esbenp.prettier-vscode",
+        "shd101wyy.markdown-preview-enhanced"
       ],
       "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python",
@@ -57,6 +60,6 @@
   "forwardPorts": [
     8000
   ],
-  "postCreateCommand": "pip install -r backend/requirements.txt && cp /workspaces/speckle_model_checker/.devcontainer/cloudrun/zshrc.cloudrun /home/vscode/.zshrc && echo 'source ~/.zshrc' >> /home/vscode/.zshenv",
+  "postCreateCommand": "pip install --upgrade pip && pip install -r ./cloudrun/backend/requirements.txt --no-warn-script-location && cp ./.devcontainer/cloudrun/zshrc.cloudrun /home/vscode/.zshrc && echo 'source ~/.zshrc' >> /home/vscode/.zshenv",
   "remoteUser": "vscode"
 }

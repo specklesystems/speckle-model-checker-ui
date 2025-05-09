@@ -1,19 +1,18 @@
 # container-specific Oh My Zsh settings
 export ZSH="$HOME/.oh-my-zsh"
 
-if [[ "$DEVCONTAINER_NAME" == "cloudrun" ]]; then
-    ZSH_THEME="agnoster"
-    plugins=(git)
+ZSH_THEME="agnoster"
+plugins=(git)
 
-    zstyle ':omz:update' mode auto
+zstyle ':omz:update' mode auto
 
-    HIST_STAMPS="yyyy/mm/dd"
+HIST_STAMPS="yyyy/mm/dd"
 
-    alias rbz="source $HOME/.zshrc"
-    alias synczsh='cp /workspaces/speckle_model_checker/.zshrc ~/.zshrc && source ~/.zshrc'
-    alias ls='exa --icons'
+alias rbz="source $HOME/.zshrc"
+alias synczsh='cp /workspace/.devcontainer/cloudrun/zshrc.cloudrun ~/.zshrc && source ~/.zshrc'
+alias ls='exa --icons'
 
-    alias run='cd backend && python run.py'
-fi
+alias run='python backend/run.py'
+
 
 source $ZSH/oh-my-zsh.sh

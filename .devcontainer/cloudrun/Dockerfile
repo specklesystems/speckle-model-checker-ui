@@ -1,5 +1,19 @@
 FROM python:3.11-slim
 
+# Add Google Cloud SDK apt repo
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  curl \
+  apt-transport-https \
+  ca-certificates \
+  gnupg \
+  && curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - \
+  && echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
+  > /etc/apt/sources.list.d/google-cloud-sdk.list
+
+
+# Install the SDK
+RUN apt-get update && apt-get install -y google-cloud-sdk
+
 # Install system dependencies
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
   && apt-get -y install --no-install-recommends \
@@ -28,9 +42,6 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # Set up the working directory
 WORKDIR /workspace
 
-COPY ./.zshrc /home/vscode/.zshrc
-RUN chown vscode:vscode /home/vscode/.zshrc  
-
 # Install Zsh and Oh My Zsh for the non-root user
 RUN apt-get update && apt-get install -y zsh git curl exa \
   && usermod --shell /usr/bin/zsh vscode \
@@ -45,6 +56,8 @@ RUN sudo chsh -s /usr/bin/zsh vscode
 
 # Add uv to PATH
 ENV PATH="/home/$USERNAME/.cargo/bin:${PATH}"
+
+RUN pip install --upgrade pip
 
 # Set up the default shell
 SHELL ["/bin/bash", "-c"] 
