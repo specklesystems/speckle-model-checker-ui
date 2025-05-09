@@ -120,6 +120,4 @@ pytest
 
 ## 📚 Documentation
 
-- [API Documentation](docs/api.md)
-- [HTMX Implementation](docs/htmx.md)
 - [Deployment Guide](DEPLOY.md)

@@ -19,25 +19,11 @@ This repository contains two implementations of  Speckle Model Checker:
    - Deployed on Firebase
    - Stateless architecture
 
-## 🎯 Quick Start
-
-Choose your implementation:
-
-- [Cloud Run Setup](cloudrun/README.md#development-setup)
-- [Firebase Setup](firebase/README.md#development-setup)
-
-## 🔐 Authentication
-
-Both implementations use Speckle OAuth for authentication. See the respective project READMEs for setup instructions:
-
-- [Cloud Run Auth Setup](cloudrun/README.md#authentication)
-- [Firebase Auth Setup](firebase/README.md#authentication)
 
 ## 📚 Documentation
 
 - [Cloud Run Documentation](cloudrun/README.md)
 - [Firebase Documentation](firebase/README.md)
-- [Deployment Guide](DEPLOY.md)
 
 ## 🤝 Contributing
 
