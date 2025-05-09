@@ -1,5 +1,7 @@
 # Environment variables
 .env
+env.yaml
+
 
 # Firebase credentials
 firebase-credentials.json
