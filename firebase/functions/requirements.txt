@@ -32,7 +32,7 @@ google-events==0.14.0
 google-resumable-media==2.7.2
 googleapis-common-protos==1.69.2
 gql==3.5.2
-graphql-core==3.2.4
+graphql-core==3.2.6
 grpc-google-iam-v1==0.14.2
 grpcio==1.71.0
 grpcio-status==1.71.0
