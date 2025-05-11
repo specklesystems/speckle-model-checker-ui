@@ -16,7 +16,7 @@ fastapi==0.109.2
 firebase-admin==6.4.0
 google-api-core==2.24.2
 google-api-python-client==2.169.0
-google-auth==2.40.0
+google-auth==2.40.1
 google-auth-httplib2==0.2.0
 google-cloud-core==2.4.3
 google-cloud-firestore==2.20.2
