@@ -123,13 +123,6 @@ In this way we are always deploying to production and developing locally (locall
 2. **Deployment Process**:
 
 ```bash
-# Deploy to staging
-gcloud run deploy speckle-model-checker-staging \
-  --image gcr.io/speckle-model-checker/speckle-model-checker:latest \
-  --platform managed \
-  --env-vars-file=cloudrun/env.staging.yaml \
-  --region=us-central1
-
 # Deploy to production
 gcloud run deploy speckle-model-checker \
   --image gcr.io/speckle-model-checker/speckle-model-checker:latest \
