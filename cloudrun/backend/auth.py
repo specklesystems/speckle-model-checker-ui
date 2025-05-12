@@ -238,8 +238,12 @@ async def exchange_token(request: Request):
                     display_name=user_data["name"],
                     photo_url=photo_url,
                     uid=user_data["id"],
-                    custom_claims=custom_claims,
                 )
+
+                # Set custom claims after user creation
+                if custom_claims:
+                    auth.set_custom_user_claims(firebase_user.uid, custom_claims)
+
                 print(f"Created new Firebase user: {firebase_user.uid}")
             except Exception as create_error:
                 print(f"Error creating Firebase user: {str(create_error)}")
