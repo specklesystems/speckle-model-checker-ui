@@ -16,7 +16,7 @@ deprecated==1.2.18
 deprecation==2.1.0
 firebase-admin==6.7.0
 firebase-functions==0.4.2
-flask==3.1.0
+flask==3.1.1
 flask-cors==5.0.1
 functions-framework==3.8.2
 google-api-core==2.24.2
