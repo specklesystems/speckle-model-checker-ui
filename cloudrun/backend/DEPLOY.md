@@ -128,7 +128,7 @@ gcloud run deploy speckle-model-checker \
   --image gcr.io/speckle-model-checker/speckle-model-checker:latest \
   --platform managed \
   --env-vars-file=cloudrun/env.prod.yaml \
-  --region=us-central1
+  --region=europe-west1
 ```
 
 3. **Environment-Specific Considerations**:
