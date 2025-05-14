@@ -1,5 +1,5 @@
 # .devcontainer/firebase/Dockerfile
-FROM node:20-bullseye-slim
+FROM node:22-bullseye-slim
 
 # global Firebase CLI
 RUN npm install -g firebase-tools
