@@ -3,18 +3,23 @@
   {% if rules %}
   <div class="bg-white rounded-lg shadow p-4">
     <div class="overflow-x-auto">
-      <table class="min-w-full border-collapse text-sm">
+      <table
+        class="min-w-full border-collapse text-sm"
+        style="table-layout: auto"
+      >
         <thead>
           <tr
             class="bg-gray-50 text-left text-gray-500 uppercase tracking-wider"
           >
-            <th class="px-3 py-2 font-medium whitespace-nowrap text-center">
+            <th class="px-3 py-2 font-medium text-center whitespace-nowrap">
               Rule #
             </th>
             <th class="px-3 py-2 font-medium whitespace-nowrap">Conditions</th>
-            <th class="px-3 py-2 font-medium">Message</th>
-            <th class="px-3 py-2 font-medium">Severity</th>
-            <th class="px-3 py-2 font-medium w-16">Actions</th>
+            <th class="px-3 py-2 font-medium whitespace-nowrap">Message</th>
+            <th class="px-3 py-2 font-medium whitespace-nowrap">Severity</th>
+            <th class="px-3 py-2 font-medium w-16 whitespace-nowrap">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">

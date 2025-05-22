@@ -842,6 +842,55 @@ def clean_conditions(conditions):
     return cleaned
 
 
+def generate_auto_message(conditions, imported_message=None):
+    # Simple version: use imported_message if present, else generate from conditions
+    if imported_message:
+        return imported_message
+    if not conditions:
+        return ""
+    filters = [c for c in conditions if c.get("logic") not in ("CHECK", "")]
+    check = next((c for c in conditions if c.get("logic") == "CHECK"), None)
+
+    def describe_predicate(property_name, predicate, value):
+        if predicate == "exists":
+            return f"{property_name} exists"
+        elif predicate == "equal to":
+            return f"{property_name} = {value}"
+        elif predicate == "in range":
+            return f"{property_name} in range {value}"
+        elif predicate == "greater than":
+            return f"{property_name} > {value}"
+        elif predicate == "less than":
+            return f"{property_name} < {value}"
+        elif predicate == "in list":
+            return f"{property_name} in [{value}]"
+        else:
+            return f"{property_name} {predicate} {value}"
+
+    filter_parts = [
+        describe_predicate(
+            f.get("propertyName", ""), f.get("predicate", ""), f.get("value", "")
+        )
+        for f in filters
+    ]
+    where_clause = f"where {' and '.join(filter_parts)}" if filter_parts else ""
+    check_clause = (
+        describe_predicate(
+            check.get("propertyName", ""),
+            check.get("predicate", ""),
+            check.get("value", ""),
+        )
+        if check
+        else ""
+    )
+    message = "For all elements"
+    if where_clause:
+        message += f" {where_clause}"
+    if check_clause:
+        message += f", {check_clause}"
+    return message
+
+
 @app.post("/rulesets/{ruleset_id}/rules")
 async def add_rule(request: Request, ruleset_id: str):
     user = await get_current_user(request)
@@ -872,10 +921,11 @@ async def add_rule(request: Request, ruleset_id: str):
     existing_rules = list(rules_ref.stream())
     next_order = len(existing_rules) + 1
 
+    auto_generated_message = generate_auto_message(conditions, form_data.get("message"))
     rule_data = {
         "conditions": conditions,
         "message": form_data.get("message"),
-        "auto_generated_message": form_data.get("auto_generated_message"),
+        "auto_generated_message": auto_generated_message,
         "severity": form_data.get("severity"),
         "order": next_order,
         "createdAt": firestore.SERVER_TIMESTAMP,
@@ -1157,6 +1207,116 @@ async def edit_project_ruleset(request: Request, project_id: str, ruleset_id: st
             return templates.TemplateResponse(
                 "project_not_found.html", {"request": request, "user": user}
             )
+
+
+@app.post("/projects/{project_id}/rulesets/import-tsv")
+async def import_ruleset_tsv(request: Request, project_id: str):
+    """Import rules from a TSV file into a new ruleset."""
+    user = await get_current_user(request)
+    if not user:
+        return HTMLResponse(status_code=401)
+
+    form_data = await request.form()
+    tsv_file = form_data.get("tsv_file")
+    if not tsv_file:
+        raise HTTPException(status_code=400, detail="No TSV file provided")
+
+    # Read and parse TSV content
+    tsv_content = await tsv_file.read()
+    tsv_text = tsv_content.decode("utf-8")
+
+    import csv
+    from io import StringIO
+
+    reader = csv.reader(StringIO(tsv_text), delimiter="\t")
+    header = next(reader)  # Skip header row
+
+    ruleset_data = {
+        "name": form_data.get("name", "Imported Ruleset"),
+        "description": form_data.get("description", "Imported from TSV file"),
+        "created_at": datetime.utcnow(),
+        "user_id": user["id"],
+        "project_id": project_id,
+        "tsv_content": tsv_text,
+    }
+
+    ruleset_ref = db.collection("rulesets").add(ruleset_data)
+    ruleset_id = ruleset_ref[1].id
+
+    current_rule_number = None
+    current_conditions = []
+    rule_message = ""
+    rule_severity = "Error"
+    rule_order = 1
+
+    def save_rule():
+        nonlocal rule_order, current_conditions, rule_message, rule_severity
+        cleaned_conditions = clean_conditions(current_conditions)
+        if cleaned_conditions:
+            auto_generated_message = generate_auto_message(
+                cleaned_conditions, rule_message
+            )
+            # If the imported message is empty, use the auto-generated message
+            message_to_store = rule_message if rule_message else auto_generated_message
+            rule_data = {
+                "conditions": cleaned_conditions,
+                "message": message_to_store,
+                "auto_generated_message": auto_generated_message,
+                "severity": rule_severity,
+                "order": rule_order,
+                "createdAt": firestore.SERVER_TIMESTAMP,
+                "updatedAt": firestore.SERVER_TIMESTAMP,
+            }
+            rules_ref = (
+                db.collection("rulesets").document(ruleset_id).collection("rules")
+            )
+            rule_id = "".join(
+                secrets.choice(string.ascii_letters + string.digits) for _ in range(20)
+            )
+            rules_ref.document(rule_id).set(rule_data)
+            rule_order += 1
+
+    for row in reader:
+        if not row or all(not cell.strip() for cell in row):
+            continue
+        rule_number = row[0].strip()
+        logic = row[1].strip().upper() if len(row) > 1 else ""
+        property_name = row[2].strip() if len(row) > 2 else ""
+        predicate = row[3].strip() if len(row) > 3 else ""
+        value = row[4].strip() if len(row) > 4 else ""
+        severity = row[5].strip() if len(row) > 5 else ""
+        message = row[6].strip() if len(row) > 6 else ""
+
+        # If a new rule starts, save the previous one
+        if rule_number:
+            if current_rule_number is not None:
+                save_rule()
+            current_rule_number = rule_number
+            current_conditions = []
+            rule_message = ""
+            rule_severity = "Error"
+
+        # Add condition
+        condition = {
+            "logic": logic,
+            "propertyName": property_name,
+            "predicate": predicate,
+            "value": value,
+        }
+        current_conditions.append(condition)
+
+        # If this is the CHECK row, set severity and message for the rule
+        if logic == "CHECK":
+            if severity:
+                rule_severity = severity
+            if message:
+                rule_message = message
+
+    # Save the last rule
+    if current_rule_number is not None:
+        save_rule()
+
+    return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
 
 
 @app.post("/projects/{project_id}/rulesets/{ruleset_id}")
