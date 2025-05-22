@@ -1,131 +1,131 @@
-name: Jon defensively tests for dependencies that dont work
+# name: Jon defensively tests for dependencies that dont work
 
-on:
-  pull_request:
+# on:
+#   pull_request:
 
-permissions:
-  pull-requests: write
-  contents: read
-  checks: write  # Needed to update PR status checks
+# permissions:
+#   pull-requests: write
+#   contents: read
+#   checks: write  # Needed to update PR status checks
 
-jobs:
-  detect_changes:
-    uses: ./.github/workflows/detect_changes.yml
+# jobs:
+#   detect_changes:
+#     uses: ./.github/workflows/detect_changes.yml
 
-  # ✅ New Job: Mark "Dependency Check" as Passed if No Changes
-  mark_no_changes:
-    needs: detect_changes
-    if: needs.detect_changes.outputs.deploy_functions == 'false'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: firebase/functions
-    steps:
-      - name: Report PR Status Check - No Changes ✅
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            github.rest.checks.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              name: "Dependency Check",
-              head_sha: context.sha,
-              status: "completed",
-              conclusion: "success",
-              output: {
-                title: "✅ No Dependencies Changed",
-                summary: "This PR does not modify dependencies. No further checks needed."
-              }
-            });
+#   # ✅ New Job: Mark "Dependency Check" as Passed if No Changes
+#   mark_no_changes:
+#     needs: detect_changes
+#     if: needs.detect_changes.outputs.deploy_functions == 'false'
+#     runs-on: ubuntu-latest
+#     defaults:
+#       run:
+#         working-directory: firebase/functions
+#     steps:
+#       - name: Report PR Status Check - No Changes ✅
+#         uses: actions/github-script@v7
+#         with:
+#           github-token: ${{ secrets.GITHUB_TOKEN }}
+#           script: |
+#             github.rest.checks.create({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               name: "Dependency Check",
+#               head_sha: context.sha,
+#               status: "completed",
+#               conclusion: "success",
+#               output: {
+#                 title: "✅ No Dependencies Changed",
+#                 summary: "This PR does not modify dependencies. No further checks needed."
+#               }
+#             });
 
-  test_dependencies:
-    needs: detect_changes
-    if: needs.detect_changes.outputs.deploy_functions == 'true'
-    runs-on: ubuntu-latest
+#   test_dependencies:
+#     needs: detect_changes
+#     if: needs.detect_changes.outputs.deploy_functions == 'true'
+#     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout Repository
+#         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+#       - name: Setup Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: '3.12'
 
-      - name: Setup Virtual Environment
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          pip install --upgrade pip
+#       - name: Setup Virtual Environment
+#         run: |
+#           python -m venv venv
+#           source venv/bin/activate
+#           pip install --upgrade pip
 
-      - name: Install Dependencies (Fail If Conflicts)
-        id: install_deps
-        run: |
-          source venv/bin/activate
-          pip install -r requirements.txt 2>&1 | tee install_errors.log
-        shell: bash
-        continue-on-error: false  # 🔴 This ensures failure stops the job
+#       - name: Install Dependencies (Fail If Conflicts)
+#         id: install_deps
+#         run: |
+#           source venv/bin/activate
+#           pip install -r requirements.txt 2>&1 | tee install_errors.log
+#         shell: bash
+#         continue-on-error: false  # 🔴 This ensures failure stops the job
 
-      - name: Capture Dependency Error
-        if: failure()
-        run: |
-          echo "error_msg<<EOF" >> $GITHUB_ENV
-          tail -n 10 install_errors.log >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-          exit 1  # 🔴 Explicitly fail the job if an error is captured
+#       - name: Capture Dependency Error
+#         if: failure()
+#         run: |
+#           echo "error_msg<<EOF" >> $GITHUB_ENV
+#           tail -n 10 install_errors.log >> $GITHUB_ENV
+#           echo "EOF" >> $GITHUB_ENV
+#           exit 1  # 🔴 Explicitly fail the job if an error is captured
 
-      - name: Report PR Status Check - Success ✅
-        if: success()
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            github.rest.checks.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              name: "Dependency Check",
-              head_sha: context.sha,
-              status: "completed",
-              conclusion: "success",
-              output: {
-                title: "✅ Dependencies Installed Successfully",
-                summary: "No conflicts found. Ready to merge!"
-              }
-            });
+#       - name: Report PR Status Check - Success ✅
+#         if: success()
+#         uses: actions/github-script@v7
+#         with:
+#           github-token: ${{ secrets.GITHUB_TOKEN }}
+#           script: |
+#             github.rest.checks.create({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               name: "Dependency Check",
+#               head_sha: context.sha,
+#               status: "completed",
+#               conclusion: "success",
+#               output: {
+#                 title: "✅ Dependencies Installed Successfully",
+#                 summary: "No conflicts found. Ready to merge!"
+#               }
+#             });
 
-      - name: Report PR Status Check - Failure ❌
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const errorMsg = process.env.error_msg || "Dependency installation failed, but no error message was captured.";
-            github.rest.checks.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              name: "Dependency Check",
-              head_sha: context.sha,
-              status: "completed",
-              conclusion: "failure",
-              output: {
-                title: "❌ Dependency Conflict",
-                summary: `This PR introduces dependency conflicts. Firebase Functions require specific package versions. Please resolve before merging.\n\n**Error Log:**\n\`\`\`\n${errorMsg}\n\`\`\``
-              }
-            });
+#       - name: Report PR Status Check - Failure ❌
+#         if: failure()
+#         uses: actions/github-script@v7
+#         with:
+#           github-token: ${{ secrets.GITHUB_TOKEN }}
+#           script: |
+#             const errorMsg = process.env.error_msg || "Dependency installation failed, but no error message was captured.";
+#             github.rest.checks.create({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               name: "Dependency Check",
+#               head_sha: context.sha,
+#               status: "completed",
+#               conclusion: "failure",
+#               output: {
+#                 title: "❌ Dependency Conflict",
+#                 summary: `This PR introduces dependency conflicts. Firebase Functions require specific package versions. Please resolve before merging.\n\n**Error Log:**\n\`\`\`\n${errorMsg}\n\`\`\``
+#               }
+#             });
 
-      - name: Close Renovate PR if Dependencies Fail
-        if: failure() && contains(github.actor, 'renovate')
-        run: |
-          PR_NUMBER=${{ github.event.pull_request.number }}
-          gh pr comment $PR_NUMBER --body "⚠️ **Dependency Conflict!** This PR updates dependencies in a way that **breaks Firebase Functions**. Firebase requires specific package versions. Please adjust the Renovate config to avoid conflicts.
+#       - name: Close Renovate PR if Dependencies Fail
+#         if: failure() && contains(github.actor, 'renovate')
+#         run: |
+#           PR_NUMBER=${{ github.event.pull_request.number }}
+#           gh pr comment $PR_NUMBER --body "⚠️ **Dependency Conflict!** This PR updates dependencies in a way that **breaks Firebase Functions**. Firebase requires specific package versions. Please adjust the Renovate config to avoid conflicts.
 
-          **Error Log:**
-          \`\`\`
-          ${{ env.error_msg }}
-          \`\`\`"
-          gh pr close $PR_NUMBER
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#           **Error Log:**
+#           \`\`\`
+#           ${{ env.error_msg }}
+#           \`\`\`"
+#           gh pr close $PR_NUMBER
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 

@@ -1,6 +1,6 @@
 <div class="bg-white p-6 rounded-md border border-gray-200 mb-6 mt-4" id="rule-form-container">
   <h3 class="text-lg font-medium mb-4">Edit Rule</h3>
-  <form id="edit-rule-form" hx-put="/rulesets/{{ ruleset.id }}/rules/{{ rule.id }}" hx-target="#ruleset-rules"
+  <form id="edit-rule-form" hx-post="/rulesets/{{ ruleset.id }}/rules/{{ rule.id }}" hx-target="#ruleset-rules"
     hx-swap="outerHTML"
     hx-on::after-request="document.getElementById('rule-row-{{ rule.id }}').classList.remove('bg-blue-50', 'border-l-4', 'border-blue-500'); document.querySelectorAll('#rule-row-{{ rule.id }} button').forEach(btn => btn.disabled = false)"
     autocomplete="off" hx-include=".logic-select" hx-indicator=".htmx-indicator"

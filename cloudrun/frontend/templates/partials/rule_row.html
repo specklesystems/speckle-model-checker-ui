@@ -2,7 +2,10 @@
   <td class="px-3 py-2 text-gray-500 align-top text-center">
     {{ rule_index }}
   </td>
-  <td class="px-3 py-2 text-gray-600 align-top whitespace-nowrap">
+  <td
+    class="px-3 py-2 text-gray-600 align-top max-w-xs overflow-hidden text-ellipsis whitespace-nowrap"
+    title="{% for condition in rule.conditions %}{{ condition.logic }} {{ condition.propertyName }} {{ condition.predicate }} {{ condition.value }} {% endfor %}"
+  >
     <div class="space-y-1">
       {% for condition in rule.conditions %}
       <div class="text-xs flex items-start">
@@ -17,7 +20,12 @@
       {% endfor %}
     </div>
   </td>
-  <td class="px-3 py-2 font-medium align-top">{{ rule.message }}</td>
+  <td
+    class="px-3 py-2 font-medium align-top max-w-xs overflow-hidden text-ellipsis whitespace-nowrap"
+    title="{{ rule.message }}"
+  >
+    {{ rule.message }}
+  </td>
   <td class="px-3 py-2 align-top">
     <span
       class="px-2 py-1 text-xs rounded-full inline-block {% if rule.severity == 'Error' %}bg-red-100 text-red-800 {% elif rule.severity == 'Warning' %}bg-yellow-100 text-yellow-800 {% else %}bg-blue-100 text-blue-800{% endif %}"
