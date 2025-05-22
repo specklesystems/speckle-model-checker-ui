@@ -53,9 +53,9 @@ PyJWT==2.10.1
 pyparsing==3.2.3
 pytest==8.3.5
 pytest-asyncio==0.26.0
+python-multipart==0.0.20
 python-dotenv==1.1.0
 python-jose==3.4.0
-python-multipart==0.0.9
 requests==2.32.3
 requests-toolbelt==1.0.0
 rsa==4.9.1
