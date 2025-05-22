@@ -1,66 +1,66 @@
-name: Detect Changes
+# name: Detect Changes
 
-on:
-  workflow_call:
-    outputs:
-      deploy_functions:
-        description: "Detects if Firebase Functions should be deployed"
-        value: ${{ jobs.detect_changes.outputs.deploy_functions }}
-      deploy_hosting:
-        description: "Detects if Firebase Hosting should be deployed"
-        value: ${{ jobs.detect_changes.outputs.deploy_hosting }}
+# on:
+#   workflow_call:
+#     outputs:
+#       deploy_functions:
+#         description: "Detects if Firebase Functions should be deployed"
+#         value: ${{ jobs.detect_changes.outputs.deploy_functions }}
+#       deploy_hosting:
+#         description: "Detects if Firebase Hosting should be deployed"
+#         value: ${{ jobs.detect_changes.outputs.deploy_hosting }}
 
-permissions:
-  contents: read
-  pull-requests: write
-  checks: write  # ✅ Allows updating PR status
+# permissions:
+#   contents: read
+#   pull-requests: write
+#   checks: write  # ✅ Allows updating PR status
 
-jobs:
-  detect_changes:
-    runs-on: ubuntu-latest
-    outputs:
-      deploy_functions: ${{ steps.filter.outputs.functions }}
-      deploy_hosting: ${{ steps.filter.outputs.hosting }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Ensure full history for proper diff detection
+# jobs:
+#   detect_changes:
+#     runs-on: ubuntu-latest
+#     outputs:
+#       deploy_functions: ${{ steps.filter.outputs.functions }}
+#       deploy_hosting: ${{ steps.filter.outputs.hosting }}
+#     steps:
+#       - name: Checkout Repository
+#         uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0  # Ensure full history for proper diff detection
 
-      - name: Detect changes
-        id: filter
-        uses: dorny/paths-filter@v3
-        with:
-          filters: |
-            functions:
-              - 'firebase/functions/**'
-            hosting:
-              - 'firebase/public/**'
-              - 'firebase/firebase.json'
+#       - name: Detect changes
+#         id: filter
+#         uses: dorny/paths-filter@v3
+#         with:
+#           filters: |
+#             functions:
+#               - 'firebase/functions/**'
+#             hosting:
+#               - 'firebase/public/**'
+#               - 'firebase/firebase.json'
 
-      - name: Debug context SHA
-        shell: bash
-        run: echo "SHA=${{ github.sha }}"
+#       - name: Debug context SHA
+#         shell: bash
+#         run: echo "SHA=${{ github.sha }}"
 
 
         
-      - name: Mark Success If No Deployment Needed ✅
-        if: steps.filter.outputs.functions == 'false' && steps.filter.outputs.hosting == 'false'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const response = await github.rest.checks.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              name: "Detect Changes",
-              head_sha: context.sha,
-              status: "completed",
-              conclusion: "success",
-              output: {
-                title: "✅ No Deployments Needed",
-                summary: "This PR does not affect Firebase Functions or Hosting. Safe to merge!"
-              }
-            });
+#       - name: Mark Success If No Deployment Needed ✅
+#         if: steps.filter.outputs.functions == 'false' && steps.filter.outputs.hosting == 'false'
+#         uses: actions/github-script@v7
+#         with:
+#           github-token: ${{ secrets.GITHUB_TOKEN }}
+#           script: |
+#             const response = await github.rest.checks.create({
+#               owner: context.repo.owner,
+#               repo: context.repo.repo,
+#               name: "Detect Changes",
+#               head_sha: context.sha,
+#               status: "completed",
+#               conclusion: "success",
+#               output: {
+#                 title: "✅ No Deployments Needed",
+#                 summary: "This PR does not affect Firebase Functions or Hosting. Safe to merge!"
+#               }
+#             });
       
-            console.log(response);
+#             console.log(response);
