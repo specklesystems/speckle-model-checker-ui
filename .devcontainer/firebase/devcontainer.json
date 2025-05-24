@@ -47,5 +47,5 @@
   ],
   "remoteUser": "vscode",
   "updateRemoteUserUID": true,
-  "postCreateCommand": "./.devcontainer/bootstrap-gcloud.sh"
+  "postCreateCommand": ".devcontainer/cloudrun/scripts/init.sh"
 }

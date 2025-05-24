@@ -1,0 +1,17 @@
+{{ define "source_badge" }}
+{{ if eq .source "speckle" }}
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-speckle-blue text-white">
+  <svg class="mr-1.5 h-2 w-2 text-white" fill="currentColor" viewBox="0 0 8 8">
+    <circle cx="4" cy="4" r="3" />
+  </svg>
+  Speckle
+</span>
+{{ else if eq .source "local" }}
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-speckle-gray-dark text-white">
+  <svg class="mr-1.5 h-2 w-2 text-white" fill="currentColor" viewBox="0 0 8 8">
+    <circle cx="4" cy="4" r="3" />
+  </svg>
+  Local
+</span>
+{{ end }}
+{{ end }}

@@ -1,65 +1,52 @@
-// .devcontainer/cloudrun/devcontainer.json
 {
-  "name": "Model Checker Dev - Cloudrun",
+  "name": "Model Checker Dev",
   "build": {
     "dockerfile": "Dockerfile",
     "context": "../.."
   },
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
-  "workspaceFolder": "/workspace/",
-  "remoteEnv": {
-    "DEVCONTAINER_NAME": "cloudrun"
-  },
+  "workspaceFolder": "/workspace",
+  "remoteUser": "vscode",
+  "forwardPorts": [
+    8000,
+    8080
+  ],
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+  ],
   "customizations": {
     "vscode": {
       "extensions": [
-        "ms-python.python",
-        "ms-python.vscode-pylance",
-        "bradlc.vscode-tailwindcss",
-        "ms-azuretools.vscode-docker",
-        "charliermarsh.ruff",
-        "esbenp.prettier-vscode",
-        "shd101wyy.markdown-preview-enhanced"
+        "golang.go",
+        "ms-azuretools.vscode-docker"
       ],
       "settings": {
-        "python.defaultInterpreterPath": "/usr/local/bin/python",
-        "python.linting.enabled": true,
-        "python.linting.pylintEnabled": true,
-        "python.formatting.provider": "ruff",
-        "[python]": {
-          "editor.defaultFormatter": "charliermarsh.ruff",
-          "editor.formatOnSave": true,
-          "editor.codeActionsOnSave": {
-            "source.fixAll": "explicit",
-            "source.organizeImports": "always"
-          }
-        },
-        "[javascript]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode",
-          "editor.formatOnSave": true,
-          "editor.codeActionsOnSave": {
-            "source.fixAll": "explicit"
-          }
-        },
-        "[html]": {
-          "editor.defaultFormatter": "esbenp.prettier-vscode",
-          "editor.formatOnSave": true,
-          "editor.codeActionsOnSave": {
-            "source.fixAll": "explicit"
-          }
-        },
+        "go.gopath": "/home/vscode/go",
+        "go.goroot": "/usr/local/go",
         "terminal.integrated.defaultProfile.linux": "zsh",
         "terminal.integrated.profiles.linux": {
           "zsh": {
             "path": "/usr/bin/zsh"
           }
         }
+      },
+      "tasks": {
+        "version": "2.0.0",
+        "tasks": [
+          {
+            "label": "Run FastAPI",
+            "type": "shell",
+            "command": "uv run cloudrun.backend.main:app --reload --host 0.0.0.0 --port 8000",
+            "problemMatcher": []
+          },
+          {
+            "label": "Run Go backend",
+            "type": "shell",
+            "command": "go run ./cloudrun/backend-go/main.go --port 8080",
+            "problemMatcher": []
+          }
+        ]
       }
     }
   },
-  "forwardPorts": [
-    8000
-  ],
-  "postCreateCommand": "pip install --upgrade pip && pip install -r ./cloudrun/backend/requirements.txt --no-warn-script-location && cp ./.devcontainer/cloudrun/zshrc.cloudrun /home/vscode/.zshrc && echo 'source ~/.zshrc' >> /home/vscode/.zshenv",
-  "remoteUser": "vscode"
+  "postCreateCommand": ".devcontainer/cloudrun/scripts/init.sh"
 }

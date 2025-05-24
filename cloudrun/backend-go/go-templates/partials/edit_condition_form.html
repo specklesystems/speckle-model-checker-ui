@@ -1,0 +1,44 @@
+{{ define "edit_condition_form" }}
+<div class="flex items-end space-x-4">
+  <div class="flex-1">
+    <label class="block text-sm font-medium text-foreground">Property</label>
+    <input type="text" name="property[]" value="{{ if .property }}{{ .property }}{{ end }}"
+      class="mt-1 block w-full rounded-md border-speckle-gray shadow-sm focus:border-speckle-blue focus:ring-speckle-blue sm:text-sm"
+      required>
+  </div>
+
+  <div class="flex-1">
+    <label class="block text-sm font-medium text-foreground">Operator</label>
+    <select name="operator[]"
+      class="mt-1 block w-full rounded-md border-speckle-gray shadow-sm focus:border-speckle-blue focus:ring-speckle-blue sm:text-sm"
+      required>
+      <option value="equals" {{ if eq .operator "equals" }}selected{{ end }}>Equals</option>
+      <option value="not_equals" {{ if eq .operator "not_equals" }}selected{{ end }}>Not Equals</option>
+      <option value="greater_than" {{ if eq .operator "greater_than" }}selected{{ end }}>Greater Than</option>
+      <option value="less_than" {{ if eq .operator "less_than" }}selected{{ end }}>Less Than</option>
+      <option value="contains" {{ if eq .operator "contains" }}selected{{ end }}>Contains</option>
+      <option value="not_contains" {{ if eq .operator "not_contains" }}selected{{ end }}>Not Contains</option>
+    </select>
+  </div>
+
+  <div class="flex-1">
+    <label class="block text-sm font-medium text-foreground">Value</label>
+    <input type="text" name="value[]" value="{{ if .value }}{{ .value }}{{ end }}"
+      class="mt-1 block w-full rounded-md border-speckle-gray shadow-sm focus:border-speckle-blue focus:ring-speckle-blue sm:text-sm"
+      required>
+  </div>
+
+  <div class="flex-1">
+    <label class="block text-sm font-medium text-foreground">Unit (optional)</label>
+    <input type="text" name="unit[]" value="{{ if .unit }}{{ .unit }}{{ end }}"
+      class="mt-1 block w-full rounded-md border-speckle-gray shadow-sm focus:border-speckle-blue focus:ring-speckle-blue sm:text-sm">
+  </div>
+
+  <button type="button" onclick="this.parentElement.remove()"
+    class="inline-flex items-center p-2 border border-transparent rounded-full shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  </button>
+</div>
+{{ end }}

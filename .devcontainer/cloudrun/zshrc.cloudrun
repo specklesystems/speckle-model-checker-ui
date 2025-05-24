@@ -10,9 +10,11 @@ HIST_STAMPS="yyyy/mm/dd"
 
 alias rbz="source $HOME/.zshrc"
 alias synczsh='cp /workspace/.devcontainer/cloudrun/zshrc.cloudrun ~/.zshrc && source ~/.zshrc'
-alias ls='exa --icons'
+
+alias lsa='exa -la'
 
 alias run='python backend/run.py'
 
+export PATH=$PATH:/usr/local/go/bin
 
-source $ZSH/oh-my-zsh.sh
+source $HOME/.oh-my-zsh/oh-my-zsh.sh

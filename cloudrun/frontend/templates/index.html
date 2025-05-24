@@ -31,8 +31,10 @@
         </div>
       </div>
       <div class="flex items-center justify-between text-sm">
-        <span class="text-secondary">Models: {{ project.models.totalCount if project.models else 0 }}</span>
-        <span class="badge-speckle">{{ project.models.totalCount if project.models else 0 }} models</span>
+        <span class="text-secondary">Models: {% if project.models %}{{ project.models.totalCount }}{% else %}0{% endif
+          %}</span>
+        <span class="badge-speckle">{% if project.models %}{{ project.models.totalCount }}{% else %}0{% endif %}
+          models</span>
       </div>
     </div>
     {% endfor %}

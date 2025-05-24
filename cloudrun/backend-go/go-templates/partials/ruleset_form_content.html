@@ -1,0 +1,25 @@
+{{ define "ruleset_form_content" }}
+<div>
+  <label for="name" class="block text-sm font-medium text-foreground">Name</label>
+  <input type="text" name="name" id="name" value="{{ if .ruleset }}{{ .ruleset.name }}{{ end }}"
+    class="mt-1 block w-full rounded-md border-speckle-gray shadow-sm focus:border-speckle-blue focus:ring-speckle-blue sm:text-sm"
+    required>
+</div>
+
+<div>
+  <label for="description" class="block text-sm font-medium text-foreground">Description</label>
+  <textarea name="description" id="description" rows="3"
+    class="mt-1 block w-full rounded-md border-speckle-gray shadow-sm focus:border-speckle-blue focus:ring-speckle-blue sm:text-sm">{{ if .ruleset }}{{ .ruleset.description }}{{ end }}</textarea>
+</div>
+
+<div class="flex justify-end space-x-4">
+  <a href="/rulesets?project_id={{ .project.id }}"
+    class="inline-flex items-center px-4 py-2 border border-speckle-gray text-sm font-medium rounded-md text-foreground bg-white hover:bg-speckle-gray focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-speckle-blue">
+    Cancel
+  </a>
+  <button type="submit"
+    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-speckle-blue hover:bg-speckle-blue-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-speckle-blue">
+    {{ if .ruleset }}Update{{ else }}Create{{ end }} Ruleset
+  </button>
+</div>
+{{ end }}

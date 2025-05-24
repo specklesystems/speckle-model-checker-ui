@@ -1,0 +1,60 @@
+{{ define "rule_form" }}
+<form method="POST"
+  action="{{ if .rule }}/rulesets/{{ .rule.ruleset_id }}/rules/{{ .rule.id }}{{ else }}/rulesets/{{ .ruleset_id }}/rules{{ end }}"
+  class="space-y-6">
+  <div>
+    <label for="name" class="block text-sm font-medium text-foreground">Name</label>
+    <input type="text" name="name" id="name" value="{{ if .rule }}{{ .rule.name }}{{ end }}"
+      class="mt-1 block w-full rounded-md border-speckle-gray shadow-sm focus:border-speckle-blue focus:ring-speckle-blue sm:text-sm"
+      required>
+  </div>
+
+  <div>
+    <label for="description" class="block text-sm font-medium text-foreground">Description</label>
+    <textarea name="description" id="description" rows="3"
+      class="mt-1 block w-full rounded-md border-speckle-gray shadow-sm focus:border-speckle-blue focus:ring-speckle-blue sm:text-sm">{{ if .rule }}{{ .rule.description }}{{ end }}</textarea>
+  </div>
+
+  <!-- Conditions -->
+  <div>
+    <label class="block text-sm font-medium text-foreground">Conditions</label>
+    <div id="conditions" class="mt-2 space-y-4">
+      {{ if .rule }}
+      {{ range .rule.conditions }}
+      {{ template "edit_condition_form" . }}
+      {{ end }}
+      {{ else }}
+      {{ template "edit_condition_form" . }}
+      {{ end }}
+    </div>
+    <button type="button" onclick="addCondition()"
+      class="mt-2 inline-flex items-center px-3 py-1.5 border border-speckle-gray text-sm font-medium rounded-md text-foreground bg-white hover:bg-speckle-gray focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-speckle-blue">
+      Add Condition
+    </button>
+  </div>
+
+  <div class="flex justify-end space-x-4">
+    <a href="/rulesets/{{ if .rule }}{{ .rule.ruleset_id }}{{ else }}{{ .ruleset_id }}{{ end }}"
+      class="inline-flex items-center px-4 py-2 border border-speckle-gray text-sm font-medium rounded-md text-foreground bg-white hover:bg-speckle-gray focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-speckle-blue">
+      Cancel
+    </a>
+    <button type="submit"
+      class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-speckle-blue hover:bg-speckle-blue-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-speckle-blue">
+      {{ if .rule }}Update{{ else }}Create{{ end }} Rule
+    </button>
+  </div>
+</form>
+
+<script>
+  function addCondition() {
+    const conditions = document.getElementById('conditions');
+    const template = document.getElementById('condition-template');
+    const clone = template.content.cloneNode(true);
+    conditions.appendChild(clone);
+  }
+</script>
+
+<template id="condition-template">
+  {{ template "edit_condition_form" . }}
+</template>
+{{ end }}

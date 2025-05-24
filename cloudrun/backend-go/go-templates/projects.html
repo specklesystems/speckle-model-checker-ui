@@ -1,0 +1,30 @@
+{{ define "projects" }}
+<div class="container mx-auto px-4 py-8">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-bold text-foreground">Your Projects</h1>
+    <div class="flex space-x-4">
+      <div class="relative">
+        <input type="text" placeholder="Search projects..."
+          class="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-speckle-blue"
+          hx-get="/projects/search" hx-trigger="keyup changed delay:500ms" hx-target="#projects-list"
+          hx-indicator=".htmx-indicator">
+      </div>
+    </div>
+  </div>
+
+  <div id="projects-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {{ range .projects }}
+    <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
+      <h2 class="text-xl font-semibold mb-2">{{ .Name }}</h2>
+      <p class="text-secondary mb-4">{{ .Description }}</p>
+      <div class="flex justify-between items-center">
+        <span class="text-sm text-secondary">{{ .ModelCount }} models</span>
+        <a href="/projects/{{ .ID }}" class="btn-speckle text-sm">
+          View Details
+        </a>
+      </div>
+    </div>
+    {{ end }}
+  </div>
+</div>
+{{ end }}

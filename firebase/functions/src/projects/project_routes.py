@@ -47,7 +47,7 @@ def get_user_projects_view(request):
 
         # Return the rendered template with the projects data
         return https_fn.Response(
-            render_template("project_selection.html", projects=projects),
+            render_template("index.html", projects=projects),
             mimetype="text/html",
         )
     except Exception as e:

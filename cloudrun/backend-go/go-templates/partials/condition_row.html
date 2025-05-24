@@ -1,0 +1,10 @@
+{{ define "condition_row" }}
+<div class="flex items-center space-x-2 text-sm">
+  <span class="text-secondary">{{ .property }}</span>
+  <span class="text-foreground">{{ .operator }}</span>
+  <span class="text-secondary">{{ .value }}</span>
+  {{ if .unit }}
+  <span class="text-secondary">{{ .unit }}</span>
+  {{ end }}
+</div>
+{{ end }}

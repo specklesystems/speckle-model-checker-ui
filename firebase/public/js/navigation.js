@@ -5,12 +5,12 @@
 
 const Navigation = {
   // Initialize navigation
-  initialize: function() {
+  initialize: function () {
     // Listen for browser navigation events (back/forward buttons)
     window.addEventListener('popstate', () => {
       this.loadContentBasedOnUrl(Auth.getCurrentUser());
     });
-    
+
     // Handle HTMX requests that should update the URL
     document.addEventListener('htmx:afterOnLoad', (event) => {
       // Check for data-hx-push-url attribute to update URL
@@ -22,19 +22,25 @@ const Navigation = {
   },
 
   // Navigate to a URL and update the browser history
-  navigateTo: function(url) {
+  navigateTo: function (url) {
     window.history.pushState(null, '', url);
     this.loadContentBasedOnUrl(Auth.getCurrentUser());
   },
 
   // Load content based on current URL and auth state
-  loadContentBasedOnUrl: function(user) {
+  loadContentBasedOnUrl: function (user) {
     if (!user) {
       UI.showWelcomeScreen();
       return;
     }
 
     const path = window.location.pathname;
+
+    // Handle root path and /projects path
+    if (path === '/' || path === '/projects') {
+      Projects.goToProjects();
+      return;
+    }
 
     // Check if this is a shared ruleset URL
     if (path.startsWith('/shared/')) {
@@ -55,11 +61,11 @@ const Navigation = {
         API.fetchWithAuth(`/api/rulesets/${ruleSetId}`, {
           method: 'GET'
         })
-        .then(html => {
-          document.querySelector('#main-content').innerHTML = html;
-          history.pushState({}, '', `/rulesets/${ruleSetId}`);
-        })
-        .catch(error => console.error("Fetch error:", error));
+          .then(html => {
+            document.querySelector('#main-content').innerHTML = html;
+            history.pushState({}, '', `/rulesets/${ruleSetId}`);
+          })
+          .catch(error => console.error("Fetch error:", error));
         return;
       }
     }
@@ -78,7 +84,7 @@ const Navigation = {
   },
 
   // Go to the projects list page
-  goToProjects: function() {
+  goToProjects: function () {
     Projects.goToProjects();
   }
 };

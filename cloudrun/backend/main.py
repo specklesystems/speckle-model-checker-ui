@@ -124,7 +124,11 @@ async def logout(request: Request):
     return HTMLResponse(
         """
         <script>
+            // Clear Firebase token
             localStorage.removeItem('firebaseToken');
+            // Clear any other auth-related data
+            sessionStorage.clear();
+            // Force reload the page to ensure clean state
             window.location.href = '/';
         </script>
         """
@@ -133,13 +137,13 @@ async def logout(request: Request):
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
-    # print("=== Starting home function ===")
+    print("=== Starting home function ===")
     user = await get_current_user(request)
     firebase_token = request.query_params.get("ft")
 
     if firebase_token:
-        # print("Firebase token found in query params")
-        # If we have a firebase token, inject it into localStorage
+        print("Firebase token found in query params")
+        # If we have a firebase token, inject it into localStorage and redirect
         return HTMLResponse(
             f"""
             <script>
@@ -150,28 +154,32 @@ async def home(request: Request):
         )
 
     if not user:
-        # print("No user found, showing login page")
+        print("No user found, showing login page")
+        # Clear any existing session data
+        request.session.clear()
         return templates.TemplateResponse(
-            "login.html", {"request": request, "title": "Model Checker", "user": user}
+            "login.html", {"request": request, "title": "Model Checker", "user": None}
         )
 
-    # print(f"User found: {user['id']}")
+    print(f"User found: {user['id']}")
 
     # Get user's Speckle token
     user_token = db.collection("userTokens").document(user["id"]).get()
     if not user_token.exists:
-        # print("No user token found, showing login page")
+        print("No user token found, showing login page")
+        # Clear any existing session data
+        request.session.clear()
         return templates.TemplateResponse(
             "login.html", {"request": request, "title": "Model Checker", "user": None}
         )
 
     speckle_token = user_token.to_dict().get("speckleToken")
-    # print("Got Speckle token")
+    print("Got Speckle token")
 
     # Fetch projects from Speckle
     async with httpx.AsyncClient() as client:
         try:
-            # print("=== Making request to Speckle ===")
+            print("=== Making request to Speckle ===")
             variables = {
                 "projectsLimit": PROJECTS_PER_PAGE,
                 "modelsLimit": MODELS_PER_PROJECT,
@@ -179,11 +187,7 @@ async def home(request: Request):
                 "projectsCursor": None,
                 "modelsCursor": None,
             }
-            # print(
-            #     "Making request to Speckle with variables:",
-            #     json.dumps(variables, indent=2),
-            # )
-            # print("Query:", PROJECTS_QUERY)
+            print("Making request to Speckle with variables:", json.dumps(variables, indent=2))
 
             response = await client.post(
                 urljoin(SPECKLE_SERVER_URL, "/graphql"),
@@ -191,90 +195,63 @@ async def home(request: Request):
                 json={"query": PROJECTS_QUERY, "variables": variables},
             )
 
-            # print("=== Got response from Speckle ===")
-            # print(f"Response status: {response.status_code}")
-            # print(f"Response headers: {dict(response.headers)}")
-            # print("Raw response:", response.text)
+            print("=== Got response from Speckle ===")
+            print(f"Response status: {response.status_code}")
 
             if response.status_code != 200:
                 error_content = response.text
-                # print(f"Error response from Speckle: {error_content}")
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Failed to fetch projects from Speckle: {error_content}",
+                print(f"Error response from Speckle: {error_content}")
+                return templates.TemplateResponse(
+                    "index.html",
+                    {
+                        "request": request,
+                        "title": "Model Checker",
+                        "user": user,
+                        "projects": [],
+                        "error": "Failed to fetch projects from Speckle"
+                    }
                 )
 
-            try:
-                data = response.json()
-            except json.JSONDecodeError as e:
-                print(f"Failed to parse JSON response: {e}")
-                print("Raw response was:", response.text)
-                raise HTTPException(
-                    status_code=500, detail="Invalid JSON response from Speckle"
-                )
+            data = response.json()
+            print("Response data:", json.dumps(data, indent=2))
 
-            # print(f"Response data keys: {data.keys()}")
             if "errors" in data:
-                print(f"GraphQL errors: {json.dumps(data['errors'], indent=2)}")
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"GraphQL errors: {json.dumps(data['errors'])}",
+                print(f"GraphQL errors: {data['errors']}")
+                return templates.TemplateResponse(
+                    "index.html",
+                    {
+                        "request": request,
+                        "title": "Model Checker",
+                        "user": user,
+                        "projects": [],
+                        "error": "Failed to fetch projects from Speckle"
+                    }
                 )
 
-            if "data" not in data or "activeUser" not in data["data"]:
-                print(f"Unexpected response structure: {json.dumps(data, indent=2)}")
-                raise HTTPException(
-                    status_code=500, detail="Unexpected response structure from Speckle"
-                )
-
-            projects = data["data"]["activeUser"]["projects"]["items"]
-            has_more_projects = (
-                data["data"]["activeUser"]["projects"]["cursor"] is not None
-            )
-            next_projects_cursor = data["data"]["activeUser"]["projects"]["cursor"]
-
-            # print("=== Successfully processed response ===")
-
-            total_count = (
-                data.get("data", {})
-                .get("activeUser", {})
-                .get("projects", {})
-                .get("totalCount", 0)
-            )
-
-            # print(f"Total projects available: {total_count}")
+            projects = data.get("data", {}).get("activeUser", {}).get("projects", {}).get("items", [])
+            print(f"Found {len(projects)} projects")
 
             return templates.TemplateResponse(
-                "project_list.html",
+                "index.html",
                 {
                     "request": request,
                     "title": "Model Checker",
                     "user": user,
-                    "projects": projects,
-                    "has_more_projects": has_more_projects,
-                    "next_projects_cursor": next_projects_cursor,
-                },
+                    "projects": projects
+                }
             )
 
         except Exception as e:
-            import traceback
-
-            print("=== Error in home function ===")
-            print("Error type:", type(e).__name__)
-            print("Error message:", str(e))
-            print("Full traceback:")
-            print(traceback.format_exc())
-
+            print(f"Error fetching projects: {str(e)}")
             return templates.TemplateResponse(
-                "project_list.html",
+                "index.html",
                 {
                     "request": request,
                     "title": "Model Checker",
                     "user": user,
                     "projects": [],
-                    "has_more_projects": False,
-                    "next_projects_cursor": None,
-                },
+                    "error": "Failed to fetch projects"
+                }
             )
 
 
@@ -282,7 +259,9 @@ async def home(request: Request):
 async def list_rulesets(request: Request):
     user = await get_current_user(request)
     if not user:
-        return HTMLResponse(status_code=401)
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "title": "Model Checker", "user": None}
+        )
 
     rulesets = db.collection("rulesets").where("user_id", "==", user["id"]).stream()
     ruleset_list = []
@@ -299,7 +278,9 @@ async def list_rulesets(request: Request):
 async def new_ruleset(request: Request):
     user = await get_current_user(request)
     if not user:
-        return HTMLResponse(status_code=401)
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "title": "Model Checker", "user": None}
+        )
 
     return templates.TemplateResponse(
         "ruleset_form.html", {"request": request, "ruleset": None, "user": user}
@@ -310,7 +291,9 @@ async def new_ruleset(request: Request):
 async def edit_ruleset(request: Request, ruleset_id: str):
     user = await get_current_user(request)
     if not user:
-        return HTMLResponse(status_code=401)
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "title": "Model Checker", "user": None}
+        )
 
     doc = db.collection("rulesets").document(ruleset_id).get()
     if not doc.exists:

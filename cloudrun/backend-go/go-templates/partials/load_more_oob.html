@@ -1,0 +1,10 @@
+{{ define "load_more_oob" }}
+<div id="load-more" hx-swap-oob="true">
+  {{ if .has_more }}
+  <button hx-get="{{ .next_url }}" hx-target="#rules-list" hx-swap="beforeend"
+    class="w-full py-2 text-sm text-speckle-blue hover:text-speckle-blue-dark">
+    Load More
+  </button>
+  {{ end }}
+</div>
+{{ end }}

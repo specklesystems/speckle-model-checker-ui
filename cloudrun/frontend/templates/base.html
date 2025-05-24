@@ -1,284 +1,179 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Model Checker{% endblock %}</title>
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <link rel="stylesheet" href="/static/styles.css" />
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              'speckle-blue': '#2563eb',
-              'speckle-blue-dark': '#1d4ed8',
-              'speckle-gray': '#475569',
-              'speckle-gray-light': '#f1f5f9',
-            },
-            fontFamily: {
-              sans: ['Inter var', 'sans-serif'],
-            },
-            boxShadow: {
-              speckle:
-                '0 4px 6px -1px rgba(37, 99, 235, 0.1), 0 2px 4px -1px rgba(37, 99, 235, 0.06)',
-            },
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Model Checker{% endblock %}</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'speckle-blue': '#2563eb',
+            'speckle-blue-dark': '#1d4ed8',
+            'speckle-gray': '#475569',
+            'speckle-gray-light': '#f1f5f9',
+          },
+          fontFamily: {
+            sans: ['Inter var', 'sans-serif'],
+          },
+          boxShadow: {
+            speckle:
+              '0 4px 6px -1px rgba(37, 99, 235, 0.1), 0 2px 4px -1px rgba(37, 99, 235, 0.06)',
           },
         },
-      };
-    </script>
-    <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-    {% block head %}{% endblock %}
-  </head>
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+  {% block head %}{% endblock %}
+</head>
 
-  <body
-    class="bg-foundation-page text-foreground has-[.viewer-transparent]:!bg-transparent"
-  >
-    <!-- Fixed Navbar -->
-    <nav
-      class="fixed z-40 top-0 w-full min-h-14 bg-white border-b border-outline-2 shadow-md bg-opacity-75"
-    >
-      <div
-        class="flex gap-4 items-center justify-between h-full w-screen px-6 py-3 sm:flex-nowrap flex-wrap"
-      >
-        <!-- Left: Speckle Logo -->
-        <a href="/" class="flex items-center">
-          <img src="/static/speckle-logo.png" alt="Speckle Logo" class="h-8" />
-          <span class="text-sm font-medium text-foreground ml-3"
-            >Model Checker</span
-          >
-        </a>
+<body class="bg-foundation-page text-foreground has-[.viewer-transparent]:!bg-transparent">
+  <!-- Fixed Navbar -->
+  <nav class="fixed z-40 top-0 w-full min-h-14 bg-white border-b border-outline-2 shadow-md bg-opacity-75">
+    <div class="flex gap-4 items-center justify-between h-full w-screen px-6 py-3 sm:flex-nowrap flex-wrap">
+      <!-- Left: Speckle Logo -->
+      <a href="/" class="flex items-center">
+        <img src="/static/speckle-logo.png" alt="Speckle Logo" class="h-8" />
+        <span class="text-sm font-medium text-foreground ml-3">Model Checker</span>
+      </a>
 
-        <!-- Right: Auth Container -->
-        <div id="auth-container" class="flex items-center space-x-4 shrink-0">
-          <!-- Loading Indicator -->
-          <div class="htmx-indicator flex items-center justify-center">
-            <svg
-              class="animate-spin h-8 w-8"
-              style="color: #3b82f6"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              width="32"
-              height="32"
-            >
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              ></path>
-            </svg>
-          </div>
-
-          {% if user %}
-          <!-- User Profile Dropdown (for logged in users) -->
-          <div id="user-profile" class="relative">
-            <button
-              id="user-dropdown-btn"
-              class="flex items-center space-x-2 focus:outline-none"
-              onclick="toggleUserDropdown()"
-            >
-              {% if user.avatar %}
-              <img
-                id="user-avatar"
-                src="{{ user.avatar }}"
-                class="w-8 h-8 rounded-full"
-              />
-              {% else %}
-              <svg
-                id="user-avatar-placeholder"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 100 100"
-                class="w-8 h-8 rounded-full"
-              >
-                <circle cx="50" cy="50" r="48" fill="#e0e0e0" />
-                <path
-                  d="M50 25 C35 25, 30 35, 30 50 C30 65, 35 80, 50 80 C65 80, 70 65, 70 50 C70 35, 65 25, 50 25"
-                  fill="#a0a0a0"
-                />
-                <path d="M30 80 C30 90, 70 90, 70 80" fill="#a0a0a0" />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="48"
-                  fill="none"
-                  stroke="#c0c0c0"
-                  stroke-width="2"
-                />
-              </svg>
-              {% endif %}
-              <span id="user-name" class="text-sm font-medium"
-                >{{ user.name }}</span
-              >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
-            <div
-              id="user-dropdown-menu"
-              class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden"
-            >
-              <div class="px-4 py-2 border-b border-gray-200">
-                <p id="dropdown-user-name" class="text-sm font-medium truncate">
-                  {{ user.name }}
-                </p>
-                <p
-                  id="dropdown-user-email"
-                  class="text-xs text-gray-500 truncate"
-                >
-                  {{ user.email }}
-                </p>
-              </div>
-              <a
-                href="/logout"
-                class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-              >
-                Sign Out
-              </a>
-            </div>
-          </div>
-          {% else %}
-          <!-- Sign In Dropdown (for logged out users) -->
-          <div id="login-container" class="relative">
-            <button
-              id="login-dropdown-btn"
-              class="flex items-center space-x-2 focus:outline-none"
-              onclick="toggleLoginDropdown()"
-            >
-              <svg
-                id="user-avatar-placeholder"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 100 100"
-                class="w-8 h-8 rounded-full"
-              >
-                <circle cx="50" cy="50" r="48" fill="#e0e0e0" />
-                <path
-                  d="M50 25 C35 25, 30 35, 30 50 C30 65, 35 80, 50 80 C65 80, 70 65, 70 50 C70 35, 65 25, 50 25"
-                  fill="#a0a0a0"
-                />
-                <path d="M30 80 C30 90, 70 90, 70 80" fill="#a0a0a0" />
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="48"
-                  fill="none"
-                  stroke="#c0c0c0"
-                  stroke-width="2"
-                />
-              </svg>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4 text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
-            </button>
-            <div
-              id="login-dropdown-menu"
-              class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden"
-            >
-              <button
-                onclick="initiateLogin()"
-                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              >
-                <div class="flex items-center">
-                  <img
-                    src="/static/speckle-logo.png"
-                    alt="Speckle"
-                    class="h-5 w-5 mr-2"
-                  />
-                  Sign in with Speckle
-                </div>
-              </button>
-            </div>
-          </div>
-          {% endif %}
+      <!-- Right: Auth Container -->
+      <div id="auth-container" class="flex items-center space-x-4 shrink-0">
+        <!-- Loading Indicator -->
+        <div class="htmx-indicator flex items-center justify-center">
+          <svg class="animate-spin h-8 w-8" style="color: #3b82f6" xmlns="http://www.w3.org/2000/svg" fill="none"
+            viewBox="0 0 24 24" width="32" height="32">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
         </div>
+
+        {% if user and user.id %}
+        <!-- User Profile Dropdown (for logged in users) -->
+        <div id="user-profile" class="relative">
+          <button id="user-dropdown-btn" class="flex items-center space-x-2 focus:outline-none"
+            onclick="toggleUserDropdown()">
+            {% if user.avatar %}
+            <img id="user-avatar" src="{{ user.avatar }}" class="w-8 h-8 rounded-full" />
+            {% else %}
+            <svg id="user-avatar-placeholder" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"
+              class="w-8 h-8 rounded-full">
+              <circle cx="50" cy="50" r="48" fill="#e0e0e0" />
+              <path d="M50 25 C35 25, 30 35, 30 50 C30 65, 35 80, 50 80 C65 80, 70 65, 70 50 C70 35, 65 25, 50 25"
+                fill="#a0a0a0" />
+              <path d="M30 80 C30 90, 70 90, 70 80" fill="#a0a0a0" />
+              <circle cx="50" cy="50" r="48" fill="none" stroke="#c0c0c0" stroke-width="2" />
+            </svg>
+            {% endif %}
+            <span id="user-name" class="text-sm font-medium">{{ user.name }}</span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div id="user-dropdown-menu"
+            class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden">
+            <div class="px-4 py-2 border-b border-gray-200">
+              <p id="dropdown-user-name" class="text-sm font-medium truncate">
+                {{ user.name }}
+              </p>
+              <p id="dropdown-user-email" class="text-xs text-gray-500 truncate">
+                {{ user.email }}
+              </p>
+            </div>
+            <a href="/logout" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+              Sign Out
+            </a>
+          </div>
+        </div>
+        {% else %}
+        <!-- Sign In Dropdown (for logged out users) -->
+        <div id="login-container" class="relative">
+          <button id="login-dropdown-btn" class="flex items-center space-x-2 focus:outline-none"
+            onclick="toggleLoginDropdown()">
+            <svg id="user-avatar-placeholder" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"
+              class="w-8 h-8 rounded-full">
+              <circle cx="50" cy="50" r="48" fill="#e0e0e0" />
+              <path d="M50 25 C35 25, 30 35, 30 50 C30 65, 35 80, 50 80 C65 80, 70 65, 70 50 C70 35, 65 25, 50 25"
+                fill="#a0a0a0" />
+              <path d="M30 80 C30 90, 70 90, 70 80" fill="#a0a0a0" />
+              <circle cx="50" cy="50" r="48" fill="none" stroke="#c0c0c0" stroke-width="2" />
+            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div id="login-dropdown-menu"
+            class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 hidden">
+            <button onclick="initiateLogin()"
+              class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+              <div class="flex items-center">
+                <img src="/static/speckle-logo.png" alt="Speckle" class="h-5 w-5 mr-2" />
+                Sign in with Speckle
+              </div>
+            </button>
+          </div>
+        </div>
+        {% endif %}
       </div>
-    </nav>
-
-    <!-- Main Content -->
-    <main class="container mx-auto pt-20 p-4">
-      <div id="main-content">{% block content %}{% endblock %}</div>
-    </main>
-
-    <!-- Modal Containers -->
-    <div
-      id="share-dialog-container"
-      class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50"
-    >
-      <!-- Dialog content will be loaded here -->
     </div>
+  </nav>
 
-    <!-- Toast container -->
-    <div id="toast-container"></div>
+  <!-- Main Content -->
+  <main class="container mx-auto pt-20 p-4">
+    <div id="main-content">{% block content %}{% endblock %}</div>
+  </main>
 
-    <script>
-      function toggleUserDropdown() {
-        const menu = document.getElementById('user-dropdown-menu');
-        menu.classList.toggle('hidden');
+  <!-- Modal Containers -->
+  <div id="share-dialog-container"
+    class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+    <!-- Dialog content will be loaded here -->
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container"></div>
+
+  <script>
+    function toggleUserDropdown() {
+      const menu = document.getElementById('user-dropdown-menu');
+      menu.classList.toggle('hidden');
+    }
+
+    function toggleLoginDropdown() {
+      const menu = document.getElementById('login-dropdown-menu');
+      menu.classList.toggle('hidden');
+    }
+
+    function initiateLogin() {
+      window.location.href = '/auth/init';
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function (event) {
+      const userDropdown = document.getElementById('user-dropdown-menu');
+      const loginDropdown = document.getElementById('login-dropdown-menu');
+      const userButton = document.getElementById('user-dropdown-btn');
+      const loginButton = document.getElementById('login-dropdown-btn');
+
+      if (userDropdown && !userButton.contains(event.target) && !userDropdown.contains(event.target)) {
+        userDropdown.classList.add('hidden');
       }
 
-      function toggleLoginDropdown() {
-        const menu = document.getElementById('login-dropdown-menu');
-        menu.classList.toggle('hidden');
+      if (loginDropdown && !loginButton.contains(event.target) && !loginDropdown.contains(event.target)) {
+        loginDropdown.classList.add('hidden');
       }
+    });
+  </script>
 
-      async function initiateLogin() {
-        try {
-          const response = await fetch('/auth/init');
-          const data = await response.json();
-          window.location.href = data.authUrl;
-        } catch (error) {
-          console.error('Failed to initiate login:', error);
-          alert('Failed to initiate login. Please try again.');
-        }
-      }
+  {% block scripts %}{% endblock %}
+</body>
 
-      // Close dropdowns when clicking outside
-      document.addEventListener('click', function (event) {
-        const userDropdown = document.getElementById('user-dropdown-menu');
-        const loginDropdown = document.getElementById('login-dropdown-menu');
-
-        if (userDropdown && !event.target.closest('#user-profile')) {
-          userDropdown.classList.add('hidden');
-        }
-
-        if (loginDropdown && !event.target.closest('#login-container')) {
-          loginDropdown.classList.add('hidden');
-        }
-      });
-    </script>
-
-    {% block scripts %}{% endblock %}
-  </body>
 </html>
