@@ -71,3 +71,5 @@ node_modules/
 functions/*.json*
 
 **/firebase-services-account-key.json
+
+cloudrun/backend-go/tmp/
