@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/speckle/model-checker/internal/logging"
 	"github.com/speckle/model-checker/internal/models"
 )
 
@@ -65,6 +64,10 @@ func (s *SpeckleService) GetProjects(token string, limit int, cursor string) ([]
 						id
 						name
 						description
+						workspace {
+							id
+							name
+						}
 						models(limit: $modelsLimit, cursor: $modelsCursor) {
 							totalCount
 							cursor
@@ -112,15 +115,6 @@ func (s *SpeckleService) GetProjects(token string, limit int, cursor string) ([]
 		return nil, "", err
 	}
 	log.Printf("executeGraphQL took: %v", time.Since(executeStart))
-
-	logging.LogColor(logging.ColorRed, "Next Cursor: %v", response.Data.ActiveUser.Projects.Cursor)
-	logging.LogColor(logging.ColorYellow, "Projects Cursor: %v", cursor)
-	logging.LogColor(logging.ColorOrange, "Prior Cursor: %v", cursor)
-
-	if response.Data.ActiveUser.Projects.Cursor == cursor {
-		logging.LogColor(logging.ColorGreen, "Next Cursor is the same as the prior cursor, this is a problem")
-
-	}
 
 	// Cache the results
 	s.mu.Lock()

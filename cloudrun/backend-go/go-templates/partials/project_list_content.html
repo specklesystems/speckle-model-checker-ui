@@ -5,6 +5,7 @@
   <div class="project-header bg-gray-50 p-4 flex relative justify-between items-stretch cursor-pointer"
     data-project-id="{{.ID}}">
     <div class="flex-1 min-w-0 mr-3">
+      <h6 class="text-sm text-gray-600 emphasis">{{.Workspace.Name}}</h6>
       <h3 class="text-lg font-medium text-gray-800 truncate">{{.Name}}</h3>
       <div class="text-sm text-gray-600 mt-1">
         <span>Models: {{if .Models.TotalCount}}{{ .Models.TotalCount }}{{ else }}0{{ end }}</span>

@@ -26,7 +26,11 @@ type Project struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	Models      struct {
+	Workspace   struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	} `json:"workspace"`
+	Models struct {
 		TotalCount int     `json:"totalCount"`
 		Cursor     string  `json:"cursor"`
 		Items      []Model `json:"items"`
