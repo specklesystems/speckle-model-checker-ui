@@ -205,24 +205,36 @@ func main() {
 	r.GET("/projects/:project_id", handlers.ProjectDetails)
 	r.GET("/projects/:project_id/models", handlers.GetProjectModels)
 
-	// Add preview image endpoint
-	r.GET("/api/model-preview/:model_id", handlers.GetModelPreview)
-	r.POST("/api/models/images", handlers.GetModelImages)
-
 	// Ruleset routes
 	r.GET("/rulesets", handlers.ListRulesets)
 	r.GET("/rulesets/new", handlers.NewRuleset)
 	r.GET("/rulesets/:ruleset_id/edit", handlers.EditRuleset)
 	r.POST("/rulesets", handlers.CreateRuleset)
 	r.POST("/rulesets/:ruleset_id", handlers.UpdateRuleset)
-	r.DELETE("/api/rulesets/:ruleset_id", handlers.DeleteRuleset)
 
 	// Rule routes
 	r.GET("/rulesets/:ruleset_id/rules/new", handlers.NewRuleForm)
 	r.POST("/rulesets/:ruleset_id/rules", handlers.AddRule)
 	r.GET("/rulesets/:ruleset_id/rules/:rule_id/edit", handlers.EditRule)
 	r.POST("/rulesets/:ruleset_id/rules/:rule_id", handlers.UpdateRule)
-	r.DELETE("/api/rulesets/:ruleset_id/rules/:rule_id", handlers.DeleteRule)
+
+	// API routes
+	api := r.Group("/api")
+	{
+		// Project routes
+		api.GET("/projects", handlers.GetProjects)
+
+		// Model routes
+		api.GET("/model-preview/:model_id", handlers.GetModelPreview)
+		api.POST("/models/images", handlers.GetModelImages)
+		api.GET("/models/preview-stream", handlers.GetModelPreviewStream)
+
+		// Ruleset routes
+		api.DELETE("/rulesets/:ruleset_id", handlers.DeleteRuleset)
+
+		// Rule routes
+		api.DELETE("/rulesets/:ruleset_id/rules/:rule_id", handlers.DeleteRule)
+	}
 
 	// Start server
 	port := os.Getenv("PORT")
