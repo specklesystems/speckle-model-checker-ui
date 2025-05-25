@@ -9,4 +9,5 @@ const (
 	ColorBlue   = "\x1b[34;1m"
 	ColorPurple = "\x1b[35;1m"
 	ColorCyan   = "\x1b[36;1m"
+	ColorOrange = "\x1b[38;5;208m"
 )

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/speckle/model-checker/internal/logging"
 	"github.com/speckle/model-checker/internal/models"
 )
 
@@ -28,7 +29,7 @@ type cachedProjects struct {
 type SpeckleService struct {
 	client *http.Client
 	mu     sync.RWMutex
-	cache  map[string]cachedProjects // key is token
+	cache  map[string]cachedProjects // key is token:cursor
 }
 
 // NewSpeckleService creates a new SpeckleService instance
@@ -43,9 +44,11 @@ func NewSpeckleService() *SpeckleService {
 func (s *SpeckleService) GetProjects(token string, limit int, cursor string) ([]models.Project, string, error) {
 	start := time.Now()
 
+	// Compute cache key using both token and cursor
+	cacheKey := fmt.Sprintf("%s:%s", token, cursor)
 	// Check cache first
 	s.mu.RLock()
-	if cached, ok := s.cache[token]; ok && time.Now().Before(cached.expires) {
+	if cached, ok := s.cache[cacheKey]; ok && time.Now().Before(cached.expires) {
 		s.mu.RUnlock()
 		log.Printf("Cache hit for projects, took: %v", time.Since(start))
 		return cached.projects, cached.cursor, nil
@@ -110,9 +113,18 @@ func (s *SpeckleService) GetProjects(token string, limit int, cursor string) ([]
 	}
 	log.Printf("executeGraphQL took: %v", time.Since(executeStart))
 
+	logging.LogColor(logging.ColorRed, "Next Cursor: %v", response.Data.ActiveUser.Projects.Cursor)
+	logging.LogColor(logging.ColorYellow, "Projects Cursor: %v", cursor)
+	logging.LogColor(logging.ColorOrange, "Prior Cursor: %v", cursor)
+
+	if response.Data.ActiveUser.Projects.Cursor == cursor {
+		logging.LogColor(logging.ColorGreen, "Next Cursor is the same as the prior cursor, this is a problem")
+
+	}
+
 	// Cache the results
 	s.mu.Lock()
-	s.cache[token] = cachedProjects{
+	s.cache[cacheKey] = cachedProjects{
 		projects: response.Data.ActiveUser.Projects.Items,
 		cursor:   response.Data.ActiveUser.Projects.Cursor,
 		expires:  time.Now().Add(cacheTTL),

@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/speckle/model-checker/internal/auth"
+	"github.com/speckle/model-checker/internal/logging"
 )
 
 // Home handles the home page
@@ -45,7 +46,7 @@ func Home(c *gin.Context) {
 	log.Printf("GetUserToken took: %v", time.Since(tokenStart))
 
 	projectsStart := time.Now()
-	projects, _, err := auth.GetProjects(userToken.SpeckleToken)
+	projects, nextCursor, err := auth.GetProjectsWithPagination(userToken.SpeckleToken, projectsPerPage, modelsPerProject, versionsPerModel, "", "")
 	if err != nil {
 		log.Printf("GetProjects took: %v", time.Since(projectsStart))
 		c.HTML(http.StatusOK, "base", gin.H{
@@ -60,11 +61,16 @@ func Home(c *gin.Context) {
 	// Don't load previews on initial page load
 	// They will be loaded lazily via HTMX when needed
 
+	logging.LogColor(logging.ColorPurple, "Next Cursor: %v", nextCursor)
+
 	c.HTML(http.StatusOK, "base", gin.H{
-		"title":    "Projects",
-		"content":  "projects",
-		"user":     user,
-		"projects": projects,
+		"title":                "Projects",
+		"content":              "projects",
+		"user":                 user,
+		"projects":             projects,
+		"has_more_projects":    nextCursor != "",
+		"next_cursor":          nextCursor,
+		"next_projects_cursor": nextCursor,
 	})
 	log.Printf("Total Home handler took: %v", time.Since(start))
 }

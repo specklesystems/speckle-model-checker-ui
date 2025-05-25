@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/speckle/model-checker/internal/auth"
+	"github.com/speckle/model-checker/internal/logging"
 
 	"encoding/base64"
 	"encoding/json"
@@ -27,7 +28,7 @@ import (
 )
 
 const (
-	projectsPerPage  = 20
+	projectsPerPage  = 5
 	modelsPerProject = 20
 	versionsPerModel = 1
 )
@@ -113,108 +114,73 @@ func getModelPreviewDataURI(modelID string, userToken string) template.URL {
 func GetProjects(c *gin.Context) {
 	user := auth.GetCurrentUser(c)
 	if user == nil {
-		c.Redirect(http.StatusFound, "/")
+		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		} else {
+			c.Redirect(http.StatusFound, "/")
+		}
 		return
 	}
 
 	userToken, err := auth.GetUserToken(user.ID)
 	if err != nil || userToken == nil {
-		c.Redirect(http.StatusFound, "/")
+		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		} else {
+			c.Redirect(http.StatusFound, "/")
+		}
 		return
 	}
 
 	// Get cursor from query parameter
 	projectsCursor := c.Query("projects_cursor")
+	logging.LogColor(logging.ColorYellow, "Projects Cursor: %v", projectsCursor)
 
 	// Get projects with pagination
 	projects, nextCursor, err := auth.GetProjectsWithPagination(userToken.SpeckleToken, projectsPerPage, modelsPerProject, versionsPerModel, projectsCursor, "")
 	if err != nil {
-		c.HTML(http.StatusInternalServerError, "base", gin.H{
-			"title":   "Error",
-			"content": "error",
-			"error":   "Failed to fetch projects",
+		if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch projects"})
+		} else {
+			c.HTML(http.StatusInternalServerError, "base", gin.H{
+				"title":   "Error",
+				"content": "error",
+				"error":   "Failed to fetch projects",
+			})
+		}
+		return
+	}
+
+	// Detect HTMX request
+	isHTMX := c.GetHeader("HX-Request") == "true"
+	if isHTMX {
+		// Render only the project list content and OOB button
+		c.HTML(http.StatusOK, "project_list_content", gin.H{
+			"projects":          projects,
+			"has_more_projects": nextCursor != "",
+			"next_cursor":       nextCursor,
+		})
+		c.HTML(http.StatusOK, "load_more_oob", gin.H{
+			"has_more_projects":    nextCursor != "",
+			"next_projects_cursor": nextCursor,
 		})
 		return
 	}
 
-	// Check if this is an API request (for SSE)
+	// Handle API request
 	if strings.HasPrefix(c.Request.URL.Path, "/api/") {
-		// Set up SSE headers
-		c.Header("Content-Type", "text/event-stream")
-		c.Header("Cache-Control", "no-cache")
-		c.Header("Connection", "keep-alive")
-		c.Header("Transfer-Encoding", "chunked")
-
-		// Send initial projects data
-		projectsData := gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"projects":   projects,
 			"nextCursor": nextCursor,
-		}
-		projectsJSON, _ := json.Marshal(projectsData)
-		c.SSEvent("projects", string(projectsJSON))
-
-		// Create a channel to receive preview results
-		previewChan := make(chan struct {
-			modelID    string
-			previewURL template.URL
 		})
-
-		// Start goroutines to fetch previews concurrently
-		for _, project := range projects {
-			for _, model := range project.Models.Items {
-				if model.PreviewUrl != "" {
-					go func(modelID string) {
-						previewDataURI := getModelPreviewDataURI(modelID, userToken.SpeckleToken)
-						if previewDataURI != "" {
-							previewChan <- struct {
-								modelID    string
-								previewURL template.URL
-							}{modelID, previewDataURI}
-						}
-					}(model.ID)
-				}
-			}
-		}
-
-		// Stream previews as they become available
-		previewCount := 0
-		totalPreviews := 0
-		for _, project := range projects {
-			for _, model := range project.Models.Items {
-				if model.PreviewUrl != "" {
-					totalPreviews++
-				}
-			}
-		}
-
-		// Set a timeout for preview fetching
-		timeout := time.After(10 * time.Second)
-		for previewCount < totalPreviews {
-			select {
-			case preview := <-previewChan:
-				previewData := gin.H{
-					"modelId":    preview.modelID,
-					"previewUrl": string(preview.previewURL),
-				}
-				previewJSON, _ := json.Marshal(previewData)
-				c.SSEvent("preview", string(previewJSON))
-				previewCount++
-			case <-timeout:
-				// Break if we've waited too long
-				goto done
-			}
-		}
-
-	done:
-		// Send completion event
-		c.SSEvent("complete", "")
 		return
 	}
 
 	// Regular HTML response
-	c.HTML(http.StatusOK, "projects.html", gin.H{
+	c.HTML(http.StatusOK, "base", gin.H{
 		"title":             "Projects",
 		"user":              user,
+		"content":           "projects",
 		"projects":          projects,
 		"has_more_projects": nextCursor != "",
 		"next_cursor":       nextCursor,

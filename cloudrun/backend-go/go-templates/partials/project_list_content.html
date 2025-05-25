@@ -1,26 +1,25 @@
 {{ define "project_list_content" }}
-<div class="space-y-6">
-  {{range .projects}}
-  <div class="project-card border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-    <!-- Project Header -->
-    <div class="project-header bg-gray-50 p-4 flex relative justify-between items-stretch cursor-pointer"
-      data-project-id="{{.ID}}">
-      <div class="flex-1 min-w-0 mr-3">
-        <h3 class="text-lg font-medium text-gray-800 truncate">{{.Name}}</h3>
-        <div class="text-sm text-gray-600 mt-1">
-          <span>Models: {{if .Models.TotalCount}}{{ .Models.TotalCount }}{{ else }}0{{ end }}</span>
-          {{if .Description}}
-          <span class="truncate block">{{.Description}}</span>
-          {{end}}
-        </div>
+{{range .projects}}
+<div class="project-card border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+  <!-- Project Header -->
+  <div class="project-header bg-gray-50 p-4 flex relative justify-between items-stretch cursor-pointer"
+    data-project-id="{{.ID}}">
+    <div class="flex-1 min-w-0 mr-3">
+      <h3 class="text-lg font-medium text-gray-800 truncate">{{.Name}}</h3>
+      <div class="text-sm text-gray-600 mt-1">
+        <span>Models: {{if .Models.TotalCount}}{{ .Models.TotalCount }}{{ else }}0{{ end }}</span>
+        {{if .Description}}
+        <span class="truncate block">{{.Description}}</span>
+        {{end}}
       </div>
+    </div>
 
-      <!-- Absolute positioned buttons in the top right -->
-      <div class="absolute top-5 right-4 flex space-x-2">
-        {{if and .Models.TotalCount (gt .Models.TotalCount 0)}}
-        <button class="toggle-btn p-1.5 bg-gray-200 text-gray-700 rounded-full" hx-get="/projects/{{.ID}}/models"
-          hx-target="#models-{{.ID}}" hx-swap="innerHTML transition:true"
-          hx-trigger="click[!this.classList.contains('expanded')]" aria-expanded="false" hx-on:click="event.stopPropagation(); 
+    <!-- Absolute positioned buttons in the top right -->
+    <div class="absolute top-5 right-4 flex space-x-2">
+      {{if and .Models.TotalCount (gt .Models.TotalCount 0)}}
+      <button class="toggle-btn p-1.5 bg-gray-200 text-gray-700 rounded-full" hx-get="/projects/{{.ID}}/models"
+        hx-target="#models-{{.ID}}" hx-swap="innerHTML transition:true"
+        hx-trigger="click[!this.classList.contains('expanded')]" aria-expanded="false" hx-on:click="event.stopPropagation(); 
             if (!this.classList.contains('expanded')) { 
               this.classList.add('expanded'); 
               this.querySelector('.toggle-btn-icon').style.transform = 'rotate(180deg)';
@@ -29,44 +28,29 @@
               this.querySelector('.toggle-btn-icon').style.transform = 'rotate(0deg)';
               document.getElementById('models-{{.ID}}').classList.add('hidden');
             }">
-          <svg class="w-4 h-4 toggle-btn-icon transition-transform" fill="none" stroke="currentColor"
-            viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-          </svg>
-        </button>
-        {{end}}
+        <svg class="w-4 h-4 toggle-btn-icon transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+        </svg>
+      </button>
+      {{end}}
 
-        <button
-          class="px-4 py-1.5 bg-primary text-white rounded hover:bg-primary-dark text-sm font-medium whitespace-nowrap"
-          onclick="window.location.href='/projects/{{.ID}}'">
-          Select
-        </button>
-      </div>
-    </div>
-
-    <!-- Models Section (Initially Hidden) -->
-    <div id="models-{{.ID}}" class="hidden transition-all duration-300">
-      <div class="flex items-center justify-center p-4">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
+      <button
+        class="px-4 py-1.5 bg-primary text-white rounded hover:bg-primary-dark text-sm font-medium whitespace-nowrap"
+        onclick="window.location.href='/projects/{{.ID}}'">
+        Select
+      </button>
     </div>
   </div>
-  {{end}}
 
-  {{if .has_more_projects}}
-  <div class="flex justify-center">
-    <button
-      class="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-      hx-get="/projects?projects_cursor={{.next_cursor}}" hx-target="#project-list" hx-swap="beforeend"
-      hx-indicator="#loading-more">
-      Load More
-    </button>
-    <div id="loading-more" class="htmx-indicator">
-      <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+  <!-- Models Section (Initially Hidden) -->
+  <div id="models-{{.ID}}" class="hidden transition-all duration-300">
+    <div class="flex items-center justify-center p-4">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
     </div>
   </div>
-  {{end}}
 </div>
+{{end}}
 
-<script src="/static/models-grid.js"></script>
+
+
 {{ end }}
