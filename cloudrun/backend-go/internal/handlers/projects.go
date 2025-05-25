@@ -7,16 +7,20 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/speckle/model-checker/internal/auth"
 
 	"encoding/base64"
+	"encoding/json"
 
 	"log"
 
 	"html/template"
+
+	"sync"
 
 	"cloud.google.com/go/storage"
 	"github.com/speckle/model-checker/internal/services"
@@ -133,15 +137,81 @@ func GetProjects(c *gin.Context) {
 		return
 	}
 
-	// Extract model IDs for each project
-	for pi := range projects {
-		modelIDs := make([]string, len(projects[pi].Models.Items))
-		for mi, model := range projects[pi].Models.Items {
-			modelIDs[mi] = model.ID
+	// Check if this is an API request (for SSE)
+	if strings.HasPrefix(c.Request.URL.Path, "/api/") {
+		// Set up SSE headers
+		c.Header("Content-Type", "text/event-stream")
+		c.Header("Cache-Control", "no-cache")
+		c.Header("Connection", "keep-alive")
+		c.Header("Transfer-Encoding", "chunked")
+
+		// Send initial projects data
+		projectsData := gin.H{
+			"projects":   projects,
+			"nextCursor": nextCursor,
 		}
-		projects[pi].ModelIDs = modelIDs
+		projectsJSON, _ := json.Marshal(projectsData)
+		c.SSEvent("projects", string(projectsJSON))
+
+		// Create a channel to receive preview results
+		previewChan := make(chan struct {
+			modelID    string
+			previewURL template.URL
+		})
+
+		// Start goroutines to fetch previews concurrently
+		for _, project := range projects {
+			for _, model := range project.Models.Items {
+				if model.PreviewUrl != "" {
+					go func(modelID string) {
+						previewDataURI := getModelPreviewDataURI(modelID, userToken.SpeckleToken)
+						if previewDataURI != "" {
+							previewChan <- struct {
+								modelID    string
+								previewURL template.URL
+							}{modelID, previewDataURI}
+						}
+					}(model.ID)
+				}
+			}
+		}
+
+		// Stream previews as they become available
+		previewCount := 0
+		totalPreviews := 0
+		for _, project := range projects {
+			for _, model := range project.Models.Items {
+				if model.PreviewUrl != "" {
+					totalPreviews++
+				}
+			}
+		}
+
+		// Set a timeout for preview fetching
+		timeout := time.After(10 * time.Second)
+		for previewCount < totalPreviews {
+			select {
+			case preview := <-previewChan:
+				previewData := gin.H{
+					"modelId":    preview.modelID,
+					"previewUrl": string(preview.previewURL),
+				}
+				previewJSON, _ := json.Marshal(previewData)
+				c.SSEvent("preview", string(previewJSON))
+				previewCount++
+			case <-timeout:
+				// Break if we've waited too long
+				goto done
+			}
+		}
+
+	done:
+		// Send completion event
+		c.SSEvent("complete", "")
+		return
 	}
 
+	// Regular HTML response
 	c.HTML(http.StatusOK, "projects.html", gin.H{
 		"title":             "Projects",
 		"user":              user,
@@ -328,7 +398,103 @@ func generateSignedURL(bucketName, objectName string, expiry time.Duration) (str
 	})
 }
 
-// GetModelImages handles fetching preview images for models
+// GetModelPreviewStream handles streaming preview images for models using SSE
+func GetModelPreviewStream(c *gin.Context) {
+	user := auth.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userToken, err := auth.GetUserToken(user.ID)
+	if err != nil || userToken == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid user token"})
+		return
+	}
+
+	// Get model IDs from query parameter
+	modelIDsStr := c.Query("modelIds")
+	if modelIDsStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing modelIds parameter"})
+		return
+	}
+
+	var modelIDs []string
+	if err := json.Unmarshal([]byte(modelIDsStr), &modelIDs); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid modelIds format"})
+		return
+	}
+
+	// Set up SSE headers
+	c.Header("Content-Type", "text/event-stream")
+	c.Header("Cache-Control", "no-cache")
+	c.Header("Connection", "keep-alive")
+	c.Header("Transfer-Encoding", "chunked")
+
+	// Create a channel to receive preview results
+	previewChan := make(chan struct {
+		modelID    string
+		previewURL string
+	})
+
+	// Create a WaitGroup to track when all goroutines are done
+	var wg sync.WaitGroup
+	wg.Add(len(modelIDs))
+
+	// Start goroutines to fetch previews concurrently
+	for _, modelID := range modelIDs {
+		go func(modelID string) {
+			defer wg.Done()
+			previewDataURI := getModelPreviewDataURI(modelID, userToken.SpeckleToken)
+			if previewDataURI != "" {
+				previewChan <- struct {
+					modelID    string
+					previewURL string
+				}{modelID, string(previewDataURI)}
+			}
+		}(modelID)
+	}
+
+	// Start a goroutine to close the channel when all previews are done
+	go func() {
+		wg.Wait()
+		close(previewChan)
+	}()
+
+	// Stream previews as they become available
+	previewCount := 0
+	totalPreviews := len(modelIDs)
+
+	// Set a timeout for the entire operation
+	timeout := time.After(10 * time.Second)
+
+	// Process previews until either all are done or we hit the timeout
+	for previewCount < totalPreviews {
+		select {
+		case preview, ok := <-previewChan:
+			if !ok {
+				// Channel closed, all previews are done
+				goto done
+			}
+			previewData := gin.H{
+				"modelId":    preview.modelID,
+				"previewUrl": preview.previewURL,
+			}
+			previewJSON, _ := json.Marshal(previewData)
+			c.SSEvent("preview", string(previewJSON))
+			previewCount++
+		case <-timeout:
+			// Break if we've waited too long
+			goto done
+		}
+	}
+
+done:
+	// Send completion event
+	c.SSEvent("complete", "")
+}
+
+// GetModelImages handles fetching preview images for models (legacy endpoint)
 func GetModelImages(c *gin.Context) {
 	user := auth.GetCurrentUser(c)
 	if user == nil {
