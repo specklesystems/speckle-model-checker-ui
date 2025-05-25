@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gin-contrib/sessions"
@@ -38,6 +39,11 @@ func logColor(color, format string, v ...interface{}) {
 func loadTemplates() *template.Template {
 	// Create a new template with a name
 	templates := template.New("")
+
+	// Add custom template functions
+	templates.Funcs(template.FuncMap{
+		"lower": strings.ToLower,
+	})
 
 	// Load all templates at once
 	logColor(colorBlue, "Loading all templates")

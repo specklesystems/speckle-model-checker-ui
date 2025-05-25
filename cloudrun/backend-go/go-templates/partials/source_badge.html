@@ -1,17 +1,34 @@
 {{ define "source_badge" }}
-{{ if eq .source "speckle" }}
-<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-speckle-blue text-white">
-  <svg class="mr-1.5 h-2 w-2 text-white" fill="currentColor" viewBox="0 0 8 8">
-    <circle cx="4" cy="4" r="3" />
-  </svg>
-  Speckle
-</span>
-{{ else if eq .source "local" }}
-<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-speckle-gray-dark text-white">
-  <svg class="mr-1.5 h-2 w-2 text-white" fill="currentColor" viewBox="0 0 8 8">
-    <circle cx="4" cy="4" r="3" />
-  </svg>
-  Local
-</span>
-{{ end }}
+{{$sourceApp := .}}
+{{if eq $sourceApp "revit"}}
+<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor" />
+  <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
+{{else if eq $sourceApp "rhino"}}
+<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor" />
+  <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
+{{else if eq $sourceApp "dynamo"}}
+<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor" />
+  <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
+{{else if eq $sourceApp "grasshopper"}}
+<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor" />
+  <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
+{{else}}
+<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor" />
+  <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
+{{end}}
 {{ end }}

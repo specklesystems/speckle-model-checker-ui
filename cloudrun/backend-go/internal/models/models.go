@@ -37,7 +37,7 @@ type Model struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	PreviewURL  string `json:"previewUrl"`
+	PreviewUrl  string `json:"previewUrl"`
 	Versions    struct {
 		Items []Version `json:"items"`
 	} `json:"versions"`

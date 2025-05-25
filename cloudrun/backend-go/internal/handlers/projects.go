@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	projectsPerPage  = 5
+	projectsPerPage  = 20
 	modelsPerProject = 20
 	versionsPerModel = 1
 )
@@ -27,7 +27,11 @@ func GetProjects(c *gin.Context) {
 		return
 	}
 
-	projects, err := auth.GetProjects(userToken.SpeckleToken)
+	// Get cursor from query parameter
+	projectsCursor := c.Query("projects_cursor")
+
+	// Get projects with pagination
+	projects, nextCursor, err := auth.GetProjectsWithPagination(userToken.SpeckleToken, projectsPerPage, modelsPerProject, versionsPerModel, projectsCursor, "")
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "base", gin.H{
 			"title":   "Error",
@@ -37,11 +41,25 @@ func GetProjects(c *gin.Context) {
 		return
 	}
 
+	// Check if this is an HTMX request
+	if c.GetHeader("HX-Request") == "true" {
+		// Return just the project list content
+		c.HTML(http.StatusOK, "project_list_content", gin.H{
+			"projects":             projects,
+			"has_more_projects":    nextCursor != "",
+			"next_projects_cursor": nextCursor,
+		})
+		return
+	}
+
+	// Return the full page
 	c.HTML(http.StatusOK, "base", gin.H{
-		"title":    "Projects",
-		"content":  "projects",
-		"user":     user,
-		"projects": projects,
+		"title":                "Projects",
+		"content":              "projects",
+		"user":                 user,
+		"projects":             projects,
+		"has_more_projects":    nextCursor != "",
+		"next_projects_cursor": nextCursor,
 	})
 }
 
@@ -65,7 +83,7 @@ func SearchProjects(c *gin.Context) {
 		return
 	}
 
-	projects, err := auth.SearchProjects(userToken.SpeckleToken, searchQuery, 5, 5)
+	projects, err := auth.SearchProjects(userToken.SpeckleToken, searchQuery, modelsPerProject, versionsPerModel)
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "error.html", gin.H{
 			"title": "Error",
@@ -74,11 +92,11 @@ func SearchProjects(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "index.html", gin.H{
-		"title":    "Search Results",
-		"user":     user,
-		"projects": projects,
-		"search":   searchQuery,
+	// Return just the project list content for HTMX requests
+	c.HTML(http.StatusOK, "project_list_content", gin.H{
+		"projects":             projects,
+		"has_more_projects":    false,
+		"next_projects_cursor": "",
 	})
 }
 

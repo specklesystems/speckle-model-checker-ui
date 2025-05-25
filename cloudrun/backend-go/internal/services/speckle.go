@@ -82,6 +82,17 @@ func (s *SpeckleService) GetProjects(token string, limit int, cursor string) ([]
 		return nil, err
 	}
 
+	// Set the cursor for each project from the projects cursor
+	for i := range response.Data.ActiveUser.Projects.Items {
+		response.Data.ActiveUser.Projects.Items[i].Models.Cursor = response.Data.ActiveUser.Projects.Cursor
+	}
+
+	// Log the response for debugging
+	fmt.Printf("Total projects: %d, Cursor: %s, Items: %d\n",
+		response.Data.ActiveUser.Projects.TotalCount,
+		response.Data.ActiveUser.Projects.Cursor,
+		len(response.Data.ActiveUser.Projects.Items))
+
 	return response.Data.ActiveUser.Projects.Items, nil
 }
 

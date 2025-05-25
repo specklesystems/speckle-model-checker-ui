@@ -53,8 +53,19 @@ func GetProjects(token string) ([]models.Project, error) {
 }
 
 // GetProjectsWithPagination retrieves projects with pagination
-func GetProjectsWithPagination(token string, projectsLimit, modelsLimit, versionsLimit int, projectsCursor, modelsCursor string) ([]models.Project, error) {
-	return speckleService.GetProjects(token, projectsLimit, projectsCursor)
+func GetProjectsWithPagination(token string, projectsLimit, modelsLimit, versionsLimit int, projectsCursor, modelsCursor string) ([]models.Project, string, error) {
+	projects, err := speckleService.GetProjects(token, projectsLimit, projectsCursor)
+	if err != nil {
+		return nil, "", err
+	}
+
+	// Get the cursor from the response
+	var nextCursor string
+	if len(projects) > 0 {
+		nextCursor = projects[0].Models.Cursor
+	}
+
+	return projects, nextCursor, nil
 }
 
 // SearchProjects searches for projects in Speckle
