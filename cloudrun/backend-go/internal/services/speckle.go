@@ -26,7 +26,7 @@ func NewSpeckleService() *SpeckleService {
 }
 
 // GetProjects fetches projects from Speckle
-func (s *SpeckleService) GetProjects(token string, limit int, cursor string) ([]models.Project, error) {
+func (s *SpeckleService) GetProjects(token string, limit int, cursor string) ([]models.Project, string, error) {
 	query := `
 		query($projectsLimit: Int!, $modelsLimit: Int!, $versionsLimit: Int!, $modelsCursor: String, $projectsCursor: String) {
 			activeUser {
@@ -79,21 +79,10 @@ func (s *SpeckleService) GetProjects(token string, limit int, cursor string) ([]
 	}
 
 	if err := s.executeGraphQL(token, query, variables, &response); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	// Set the cursor for each project from the projects cursor
-	for i := range response.Data.ActiveUser.Projects.Items {
-		response.Data.ActiveUser.Projects.Items[i].Models.Cursor = response.Data.ActiveUser.Projects.Cursor
-	}
-
-	// Log the response for debugging
-	fmt.Printf("Total projects: %d, Cursor: %s, Items: %d\n",
-		response.Data.ActiveUser.Projects.TotalCount,
-		response.Data.ActiveUser.Projects.Cursor,
-		len(response.Data.ActiveUser.Projects.Items))
-
-	return response.Data.ActiveUser.Projects.Items, nil
+	return response.Data.ActiveUser.Projects.Items, response.Data.ActiveUser.Projects.Cursor, nil
 }
 
 // SearchProjects searches for projects in Speckle
@@ -231,4 +220,21 @@ func (s *SpeckleService) executeGraphQL(token, query string, variables map[strin
 	}
 
 	return nil
+}
+
+// GetModelByID fetches a model by its ID by searching all projects and their models
+func GetModelByID(token, modelID string) (*models.Model, error) {
+	s := NewSpeckleService()
+	projects, _, err := s.GetProjects(token, 100, "")
+	if err != nil {
+		return nil, err
+	}
+	for _, project := range projects {
+		for _, model := range project.Models.Items {
+			if model.ID == modelID {
+				return &model, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("model not found")
 }

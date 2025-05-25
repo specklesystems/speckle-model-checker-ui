@@ -49,7 +49,7 @@ func Home(c *gin.Context) {
 	}
 
 	// Fetch projects from Speckle
-	projects, err := auth.GetProjects(userToken.SpeckleToken)
+	projects, _, err := auth.GetProjects(userToken.SpeckleToken)
 	if err != nil {
 		log.Printf("Failed to fetch projects: %v", err)
 		c.HTML(http.StatusOK, "base", gin.H{
@@ -58,6 +58,14 @@ func Home(c *gin.Context) {
 			"user":    user,
 		})
 		return
+	}
+	logging.LogColor(logging.ColorRed, "Projects: %+v", projects)
+
+	// Populate PreviewDataURI for each model
+	for pi := range projects {
+		for mi := range projects[pi].Models.Items {
+			projects[pi].Models.Items[mi].PreviewDataURI = getModelPreviewDataURI(projects[pi].Models.Items[mi].ID, userToken.SpeckleToken)
+		}
 	}
 
 	// For logged-in users with projects, render the base template with projects

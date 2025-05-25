@@ -48,23 +48,16 @@ func GetUserToken(userID string) (*models.UserToken, error) {
 }
 
 // GetProjects retrieves projects from Speckle
-func GetProjects(token string) ([]models.Project, error) {
+func GetProjects(token string) ([]models.Project, string, error) {
 	return speckleService.GetProjects(token, 5, "")
 }
 
 // GetProjectsWithPagination retrieves projects with pagination
 func GetProjectsWithPagination(token string, projectsLimit, modelsLimit, versionsLimit int, projectsCursor, modelsCursor string) ([]models.Project, string, error) {
-	projects, err := speckleService.GetProjects(token, projectsLimit, projectsCursor)
+	projects, nextCursor, err := speckleService.GetProjects(token, projectsLimit, projectsCursor)
 	if err != nil {
 		return nil, "", err
 	}
-
-	// Get the cursor from the response
-	var nextCursor string
-	if len(projects) > 0 {
-		nextCursor = projects[0].Models.Cursor
-	}
-
 	return projects, nextCursor, nil
 }
 

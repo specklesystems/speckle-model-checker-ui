@@ -1,6 +1,7 @@
 package models
 
 import (
+	"html/template"
 	"time"
 )
 
@@ -34,11 +35,12 @@ type Project struct {
 
 // Model represents a Speckle model
 type Model struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	PreviewUrl  string `json:"previewUrl"`
-	Versions    struct {
+	ID             string       `json:"id"`
+	Name           string       `json:"name"`
+	Description    string       `json:"description"`
+	PreviewUrl     string       `json:"previewUrl"`
+	PreviewDataURI template.URL // base64 data URI for template rendering
+	Versions       struct {
 		Items []Version `json:"items"`
 	} `json:"versions"`
 	TotalCount int    `json:"totalCount"`

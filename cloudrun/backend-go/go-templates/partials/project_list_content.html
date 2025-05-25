@@ -42,7 +42,8 @@
       {{if and .Versions .Versions.Items (gt (len .Versions.Items) 0)}}
       <div class="model-card border border-gray-200 rounded bg-white shadow-sm overflow-hidden">
         {{if .PreviewUrl}}
-        <div class="h-32 bg-gray-100 bg-center bg-cover" style="background-image: url('{{.PreviewUrl}}')">
+        <div class="h-32 bg-gray-100 bg-center bg-cover" {{if
+          .PreviewDataURI}}style="background-image: url('{{.PreviewDataURI}}')" {{end}}>
           <div
             class="absolute top-2 right-2 bg-secondary rounded-lg shadow-sm p-1 text-xs font-medium source-badge text-white {{(index .Versions.Items 0).SourceApplication | lower}}">
             {{if and .Versions .Versions.Items (gt (len .Versions.Items) 0)}}

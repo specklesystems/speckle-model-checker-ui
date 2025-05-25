@@ -196,6 +196,9 @@ func main() {
 	r.GET("/projects/search", handlers.SearchProjects)
 	r.GET("/projects/:project_id", handlers.ProjectDetails)
 
+	// Add preview image endpoint
+	r.GET("/api/model-preview/:model_id", handlers.GetModelPreview)
+
 	// Ruleset routes
 	r.GET("/rulesets", handlers.ListRulesets)
 	r.GET("/rulesets/new", handlers.NewRuleset)
