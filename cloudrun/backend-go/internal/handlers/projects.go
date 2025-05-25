@@ -3,10 +3,6 @@ package handlers
 import (
 	"net/http"
 
-	"context"
-	"fmt"
-	"io"
-	"os"
 	"strings"
 	"time"
 
@@ -14,12 +10,9 @@ import (
 	"github.com/speckle/model-checker/internal/auth"
 	"github.com/speckle/model-checker/internal/logging"
 
-	"encoding/base64"
 	"encoding/json"
 
 	"log"
-
-	"html/template"
 
 	"sync"
 
@@ -33,81 +26,11 @@ const (
 	versionsPerModel = 1
 )
 
-// getModelPreviewDataURI fetches or caches and returns the data URI for a model preview
-func getModelPreviewDataURI(modelID string, userToken string) template.URL {
-	start := time.Now()
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
+var previewService = services.NewPreviewService()
 
-	bucketName := os.Getenv("FIREBASE_STORAGE_BUCKET")
-	objectName := fmt.Sprintf("previews/%s.png", modelID)
-	client := auth.GetFirebaseStorageClient()
-	if client == nil {
-		return ""
-	}
-	bucket := client.Bucket(bucketName)
-	obj := bucket.Object(objectName)
-
-	// Try to get from cache first
-	cacheStart := time.Now()
-	rc, err := obj.NewReader(ctx)
-	if err == nil {
-		defer rc.Close()
-		imgBytes, err := io.ReadAll(rc)
-		if err == nil {
-			contentType := "image/png"
-			base64Data := base64.StdEncoding.EncodeToString(imgBytes)
-			log.Printf("Cache hit for model %s, took: %v", modelID, time.Since(cacheStart))
-			return template.URL(fmt.Sprintf("data:%s;base64,%s", contentType, base64Data))
-		}
-	}
-	log.Printf("Cache miss for model %s, took: %v", modelID, time.Since(cacheStart))
-
-	// Not in cache, fetch from Speckle
-	speckleStart := time.Now()
-	model, err := services.GetModelByID(userToken, modelID)
-	if err != nil || model == nil || model.PreviewUrl == "" {
-		log.Printf("Failed to get model %s from Speckle, took: %v", modelID, time.Since(speckleStart))
-		return ""
-	}
-	log.Printf("Got model %s from Speckle, took: %v", modelID, time.Since(speckleStart))
-
-	// Fetch preview from Speckle
-	previewStart := time.Now()
-	req, _ := http.NewRequestWithContext(ctx, "GET", model.PreviewUrl, nil)
-	req.Header.Set("Authorization", "Bearer "+userToken)
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil || resp.StatusCode != 200 {
-		log.Printf("Failed to fetch preview for model %s, took: %v", modelID, time.Since(previewStart))
-		return ""
-	}
-	defer resp.Body.Close()
-
-	imgBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Printf("Failed to read preview for model %s, took: %v", modelID, time.Since(previewStart))
-		return ""
-	}
-	log.Printf("Fetched preview for model %s, took: %v", modelID, time.Since(previewStart))
-
-	// Cache in Firebase Storage in a goroutine
-	go func() {
-		cacheStart := time.Now()
-		wc := obj.NewWriter(ctx)
-		wc.ContentType = "image/png"
-		if _, err := wc.Write(imgBytes); err == nil {
-			wc.Close()
-			log.Printf("Cached preview for model %s, took: %v", modelID, time.Since(cacheStart))
-		}
-	}()
-
-	// Return data URI immediately
-	base64Start := time.Now()
-	base64Data := base64.StdEncoding.EncodeToString(imgBytes)
-	log.Printf("Base64 encoded preview for model %s, took: %v", modelID, time.Since(base64Start))
-
-	log.Printf("Total preview processing for model %s took: %v", modelID, time.Since(start))
-	return template.URL(fmt.Sprintf("data:image/png;base64,%s", base64Data))
+// GetModelPreviewDataURI fetches or caches and returns the data URI for a model preview
+func GetModelPreviewDataURI(modelID string, userToken string) string {
+	return previewService.GetModelPreviewDataURI(modelID, userToken)
 }
 
 // GetProjects handles fetching projects
@@ -309,8 +232,9 @@ func GetProjectModels(c *gin.Context) {
 
 	// Return HTML with just the model IDs, no preview data URIs
 	c.HTML(http.StatusOK, "partials/models_grid.html", gin.H{
-		"models":    project.Models.Items,
-		"model_ids": modelIDs,
+		"models":     project.Models.Items,
+		"model_ids":  modelIDs,
+		"project_id": projectID,
 	})
 }
 
@@ -336,7 +260,7 @@ func GetModelPreview(c *gin.Context) {
 	}
 
 	// Get the preview data URI
-	previewURI := getModelPreviewDataURI(modelID, userToken.SpeckleToken)
+	previewURI := GetModelPreviewDataURI(modelID, userToken.SpeckleToken)
 	if previewURI == "" {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Preview not found"})
 		return
@@ -411,12 +335,12 @@ func GetModelPreviewStream(c *gin.Context) {
 	for _, modelID := range modelIDs {
 		go func(modelID string) {
 			defer wg.Done()
-			previewDataURI := getModelPreviewDataURI(modelID, userToken.SpeckleToken)
+			previewDataURI := GetModelPreviewDataURI(modelID, userToken.SpeckleToken)
 			if previewDataURI != "" {
 				previewChan <- struct {
 					modelID    string
 					previewURL string
-				}{modelID, string(previewDataURI)}
+				}{modelID, previewDataURI}
 			}
 		}(modelID)
 	}
@@ -487,11 +411,49 @@ func GetModelImages(c *gin.Context) {
 
 	// Fetch images for each model ID
 	for _, modelID := range req.ModelIDs {
-		dataURI := getModelPreviewDataURI(modelID, userToken.SpeckleToken)
+		dataURI := GetModelPreviewDataURI(modelID, userToken.SpeckleToken)
 		if dataURI != "" {
-			images[modelID] = string(dataURI)
+			images[modelID] = dataURI
 		}
 	}
 
 	c.JSON(http.StatusOK, images)
+}
+
+// GetModelPreviews handles batch loading of model previews
+func GetModelPreviews(c *gin.Context) {
+	user := auth.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userToken, err := auth.GetUserToken(user.ID)
+	if err != nil || userToken == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var request struct {
+		Models []struct {
+			ModelID   string `json:"modelId"`
+			ProjectID string `json:"projectId"`
+		} `json:"models"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	previews := make([]gin.H, 0, len(request.Models))
+	for _, model := range request.Models {
+		previewURL := GetModelPreviewDataURI(model.ModelID, userToken.SpeckleToken)
+		previews = append(previews, gin.H{
+			"modelId":    model.ModelID,
+			"previewUrl": previewURL,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{"previews": previews})
 }

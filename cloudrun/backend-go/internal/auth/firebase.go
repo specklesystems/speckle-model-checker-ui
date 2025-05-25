@@ -12,6 +12,7 @@ import (
 	"cloud.google.com/go/storage"
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
+	"github.com/speckle/model-checker/internal/logging"
 	"google.golang.org/api/option"
 )
 
@@ -31,6 +32,7 @@ func InitializeFirebase() error {
 	if _, err := os.Stat(credPath); os.IsNotExist(err) {
 		credPath = filepath.Join("..", "firebase-service-account-key.json")
 		if _, err := os.Stat(credPath); os.IsNotExist(err) {
+			logging.LogColor(logging.ColorRed, "Firebase service account key not found in current or parent directory")
 			return fmt.Errorf("firebase service account key not found in current or parent directory")
 		}
 	}
@@ -41,27 +43,32 @@ func InitializeFirebase() error {
 	var err error
 	app, err = firebase.NewApp(ctx, cfg, opt)
 	if err != nil {
+		logging.LogColor(logging.ColorRed, "Failed to initialize Firebase app: %v", err)
 		return err
 	}
 
 	// Auth client
 	authClient, err = app.Auth(ctx)
 	if err != nil {
+		logging.LogColor(logging.ColorRed, "Failed to initialize Firebase Auth client: %v", err)
 		return err
 	}
 
 	// Firestore client
 	firestoreClient, err = app.Firestore(ctx)
 	if err != nil {
+		logging.LogColor(logging.ColorRed, "Failed to initialize Firestore client: %v", err)
 		return err
 	}
 
 	// Storage client (cache it)
 	storageClient, err = storage.NewClient(ctx, option.WithCredentialsFile(credPath))
 	if err != nil {
+		logging.LogColor(logging.ColorRed, "Failed to initialize Storage client: %v", err)
 		return err
 	}
 
+	logging.LogColor(logging.ColorYellow, "Firebase initialization completed successfully")
 	return nil
 }
 

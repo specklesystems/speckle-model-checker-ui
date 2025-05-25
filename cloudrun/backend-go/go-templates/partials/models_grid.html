@@ -1,9 +1,10 @@
 {{ define "partials/models_grid.html" }}
-<div class="models-grid" data-model-ids='{{ .model_ids | json }}'>
+<div class="models-grid" data-model-ids='{{ .model_ids | json }}' data-project-id="{{ .project_id }}">
   <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 p-4 bg-white">
     {{ range .models }}
     <div class="model-card border border-gray-200 rounded bg-white shadow-sm overflow-hidden">
       <div class="h-32 flex items-center justify-center bg-gray-100">
+        {{ if .PreviewUrl }}
         <svg class="model-image throbber animate-spin h-8 w-8 text-gray-400" data-model-id="{{ .ID }}"
           xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -11,12 +12,26 @@
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
           </path>
         </svg>
+        {{ else }}
+        <div class="model-image-placeholder" data-model-id="{{ .ID }}">
+          <img
+            src="data:image/png;base64,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"
+            class="model-image text-gray-400" data-model-id="6906fa3bae" alt="No Preview exists for this model."
+            style="filter: brightness(1.5) grayscale(100%) opacity(0.5); -webkit-filter: brightness(1.5) grayscale(100%) opacity(0.5);">
+        </div>
+        {{ end }}
       </div>
       <div class="p-2">
-        <div class="font-medium text-gray-800 truncate">{{ .Name }}</div>
-        {{ if .Description }}
-        <div class="text-xs text-gray-600 truncate">{{ .Description }}</div>
-        {{ end }}
+        <div class="flex items-center gap-2">
+          <div class="font-medium text-gray-800 truncate text-sm flex-1">{{ .Name }}</div>
+          <a href="https://app.speckle.systems/projects/{{ $.project_id }}/models/{{ .ID }}" target="_blank"
+            class="text-gray-500 hover:text-gray-700 flex-shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+            </svg>
+          </a>
+        </div>
       </div>
     </div>
     {{ end }}

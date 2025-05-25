@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"html/template"
 	"log"
@@ -10,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/firestore"
+	"cloud.google.com/go/storage"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
@@ -19,6 +22,26 @@ import (
 	"github.com/speckle/model-checker/internal/logging"
 	"github.com/speckle/model-checker/internal/models"
 )
+
+var (
+	firestoreClient *firestore.Client
+	storageClient   *storage.Client
+)
+
+func init() {
+	// Initialize Firebase Storage client
+	ctx := context.Background()
+	var err error
+	storageClient, err = storage.NewClient(ctx)
+	if err != nil {
+		log.Printf("Failed to create Firebase Storage client: %v", err)
+	}
+}
+
+// GetFirebaseStorageClient returns the Firebase Storage client
+func GetFirebaseStorageClient() *storage.Client {
+	return storageClient
+}
 
 func loadTemplates() *template.Template {
 	// Create a new template with a name
@@ -211,6 +234,7 @@ func main() {
 		api.GET("/model-preview/:model_id", handlers.GetModelPreview)
 		api.POST("/models/images", handlers.GetModelImages)
 		api.GET("/models/preview-stream", handlers.GetModelPreviewStream)
+		api.POST("/model-previews", handlers.GetModelPreviews)
 
 		// Ruleset routes
 		api.DELETE("/rulesets/:ruleset_id", handlers.DeleteRuleset)

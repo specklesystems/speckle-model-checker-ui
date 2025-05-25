@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/speckle/model-checker/internal/logging"
 	"github.com/speckle/model-checker/internal/models"
 )
 
@@ -27,6 +27,7 @@ func InitAuth(c *gin.Context) {
 	appSecret := os.Getenv("SPECKLE_APP_SECRET")
 
 	if appID == "" || appSecret == "" {
+		logging.LogColor(logging.ColorRed, "Speckle App ID or Secret not configured")
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Speckle App ID or Secret not configured"})
 		return
 	}
@@ -38,6 +39,7 @@ func InitAuth(c *gin.Context) {
 	session.Save()
 
 	authURL := fmt.Sprintf("%s/authn/verify/%s/%s", speckleServerURL, appID, challengeID)
+	logging.LogColor(logging.ColorBlue, "Initialized Speckle authentication with challenge ID: %s", challengeID)
 
 	c.JSON(http.StatusOK, gin.H{
 		"challengeId": challengeID,
@@ -55,6 +57,7 @@ func ExchangeToken(c *gin.Context) {
 	session.Save()
 
 	if accessCode == "" || challengeID == nil {
+		logging.LogColor(logging.ColorRed, "Missing access code or challenge ID")
 		c.HTML(http.StatusBadRequest, "base", gin.H{
 			"title":   "Error",
 			"content": "error",
@@ -71,8 +74,10 @@ func ExchangeToken(c *gin.Context) {
 	data.Set("appSecret", os.Getenv("SPECKLE_APP_SECRET"))
 	data.Set("challenge", challengeID.(string))
 
+	logging.LogColor(logging.ColorBlue, "Exchanging access code for token")
 	resp, err := http.PostForm(tokenURL, data)
 	if err != nil {
+		logging.LogColor(logging.ColorRed, "Failed to exchange token: %v", err)
 		c.HTML(http.StatusInternalServerError, "base", gin.H{
 			"title":   "Error",
 			"content": "error",
@@ -83,6 +88,7 @@ func ExchangeToken(c *gin.Context) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		logging.LogColor(logging.ColorRed, "Token exchange failed with status: %d", resp.StatusCode)
 		c.HTML(resp.StatusCode, "base", gin.H{
 			"title":   "Error",
 			"content": "error",
@@ -96,6 +102,7 @@ func ExchangeToken(c *gin.Context) {
 		RefreshToken string `json:"refreshToken"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
+		logging.LogColor(logging.ColorRed, "Failed to decode token response: %v", err)
 		c.HTML(http.StatusInternalServerError, "base", gin.H{
 			"title":   "Error",
 			"content": "error",
@@ -114,9 +121,11 @@ func ExchangeToken(c *gin.Context) {
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", tokenResp.Token))
 	req.Header.Set("Content-Type", "application/json")
 
+	logging.LogColor(logging.ColorBlue, "Fetching user profile from Speckle")
 	client := &http.Client{}
 	resp, err = client.Do(req)
 	if err != nil {
+		logging.LogColor(logging.ColorRed, "Failed to get user profile: %v", err)
 		c.HTML(http.StatusInternalServerError, "base", gin.H{
 			"title":   "Error",
 			"content": "error",
@@ -127,6 +136,7 @@ func ExchangeToken(c *gin.Context) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		logging.LogColor(logging.ColorRed, "Profile fetch failed with status: %d", resp.StatusCode)
 		c.HTML(resp.StatusCode, "base", gin.H{
 			"title":   "Error",
 			"content": "error",
@@ -141,6 +151,7 @@ func ExchangeToken(c *gin.Context) {
 		} `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&profileResp); err != nil {
+		logging.LogColor(logging.ColorRed, "Failed to decode profile response: %v", err)
 		c.HTML(http.StatusInternalServerError, "base", gin.H{
 			"title":   "Error",
 			"content": "error",
@@ -156,8 +167,10 @@ func ExchangeToken(c *gin.Context) {
 		UserID:       user.ID,
 	}
 
+	logging.LogColor(logging.ColorYellow, "Storing user token in Firestore for user: %s", user.ID)
 	_, err = firestoreClient.Collection("userTokens").Doc(user.ID).Set(context.Background(), userToken)
 	if err != nil {
+		logging.LogColor(logging.ColorRed, "Failed to store user token: %v", err)
 		c.HTML(http.StatusInternalServerError, "base", gin.H{
 			"title":   "Error",
 			"content": "error",
@@ -171,9 +184,10 @@ func ExchangeToken(c *gin.Context) {
 	session.Set("user_name", user.Name)
 	session.Set("user_email", user.Email)
 	if err := session.Save(); err != nil {
-		log.Printf("Failed to save session: %v", err)
+		logging.LogColor(logging.ColorRed, "Failed to save session: %v", err)
 	}
 
+	logging.LogColor(logging.ColorBlue, "Authentication completed successfully for user: %s", user.ID)
 	c.Redirect(http.StatusFound, "/")
 }
 

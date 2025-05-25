@@ -3,12 +3,12 @@ package auth
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/speckle/model-checker/internal/logging"
 	"github.com/speckle/model-checker/internal/models"
 	"github.com/speckle/model-checker/internal/services"
 )
@@ -102,7 +102,7 @@ func AddRule(rulesetID string, rule *models.Rule) error {
 func GetCurrentUser(c *gin.Context) *models.User {
 	// First check if user is in context
 	if user, exists := c.Get("user"); exists {
-		log.Printf("GetCurrentUser - Found user in context: type=%T, value=%+v", user, user)
+		logging.LogColor(logging.ColorBlue, "GetCurrentUser - Found user in context: type=%T, value=%+v", user, user)
 		if u, ok := user.(*models.User); ok {
 			return u
 		}
@@ -114,10 +114,10 @@ func GetCurrentUser(c *gin.Context) *models.User {
 	userName := session.Get("user_name")
 	userEmail := session.Get("user_email")
 
-	log.Printf("GetCurrentUser - Session values: userID=%v, userName=%v, userEmail=%v", userID, userName, userEmail)
+	logging.LogColor(logging.ColorYellow, "GetCurrentUser - Session values: userID=%v, userName=%v, userEmail=%v", userID, userName, userEmail)
 
 	if userID == nil || userName == nil || userEmail == nil {
-		log.Printf("GetCurrentUser - Missing session data")
+		logging.LogColor(logging.ColorRed, "GetCurrentUser - Missing session data")
 		return nil
 	}
 
@@ -126,7 +126,7 @@ func GetCurrentUser(c *gin.Context) *models.User {
 		Name:  userName.(string),
 		Email: userEmail.(string),
 	}
-	log.Printf("GetCurrentUser - Created user from session: %+v", user)
+	logging.LogColor(logging.ColorBlue, "GetCurrentUser - Created user from session: %+v", user)
 
 	// Set user in context for future use
 	c.Set("user", user)

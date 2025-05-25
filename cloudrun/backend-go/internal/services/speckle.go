@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/speckle/model-checker/internal/logging"
 	"github.com/speckle/model-checker/internal/models"
 )
 
@@ -49,7 +50,7 @@ func (s *SpeckleService) GetProjects(token string, limit int, cursor string) ([]
 	s.mu.RLock()
 	if cached, ok := s.cache[cacheKey]; ok && time.Now().Before(cached.expires) {
 		s.mu.RUnlock()
-		log.Printf("Cache hit for projects, took: %v", time.Since(start))
+		logging.LogColor(logging.ColorGreen, "Cache hit for projects, took: %v", time.Since(start))
 		return cached.projects, cached.cursor, nil
 	}
 	s.mu.RUnlock()
@@ -111,10 +112,10 @@ func (s *SpeckleService) GetProjects(token string, limit int, cursor string) ([]
 
 	executeStart := time.Now()
 	if err := s.executeGraphQL(token, query, variables, &response); err != nil {
-		log.Printf("executeGraphQL took: %v", time.Since(executeStart))
+		logging.LogColor(logging.ColorRed, "executeGraphQL failed: %v", err)
 		return nil, "", err
 	}
-	log.Printf("executeGraphQL took: %v", time.Since(executeStart))
+	logging.LogColor(logging.ColorBlue, "executeGraphQL took: %v", time.Since(executeStart))
 
 	// Cache the results
 	s.mu.Lock()
@@ -247,36 +248,38 @@ func (s *SpeckleService) executeGraphQL(token, query string, variables map[strin
 	marshalStart := time.Now()
 	reqBodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
-		log.Printf("json.Marshal took: %v", time.Since(marshalStart))
-		return fmt.Errorf("failed to marshal request body: %v", err)
+		logging.LogColor(logging.ColorRed, "json.Marshal failed: %v", err)
+		return err
 	}
 	log.Printf("json.Marshal took: %v", time.Since(marshalStart))
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/graphql", speckleServerURL), bytes.NewReader(reqBodyBytes))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/graphql", speckleServerURL), bytes.NewBuffer(reqBodyBytes))
 	if err != nil {
-		return fmt.Errorf("failed to create request: %v", err)
+		logging.LogColor(logging.ColorRed, "Failed to create request: %v", err)
+		return err
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 	req.Header.Set("Content-Type", "application/json")
 
-	doStart := time.Now()
+	httpStart := time.Now()
 	resp, err := s.client.Do(req)
 	if err != nil {
-		log.Printf("http.Do took: %v", time.Since(doStart))
-		return fmt.Errorf("failed to execute request: %v", err)
+		logging.LogColor(logging.ColorRed, "http.Do failed: %v", err)
+		return err
 	}
 	defer resp.Body.Close()
-	log.Printf("http.Do took: %v", time.Since(doStart))
+	log.Printf("http.Do took: %v", time.Since(httpStart))
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		logging.LogColor(logging.ColorRed, "GraphQL request failed with status: %d", resp.StatusCode)
+		return fmt.Errorf("GraphQL request failed with status: %d", resp.StatusCode)
 	}
 
 	decodeStart := time.Now()
 	if err := json.NewDecoder(resp.Body).Decode(response); err != nil {
-		log.Printf("json.Decode took: %v", time.Since(decodeStart))
-		return fmt.Errorf("failed to decode response: %v", err)
+		logging.LogColor(logging.ColorRed, "json.Decode failed: %v", err)
+		return err
 	}
 	log.Printf("json.Decode took: %v", time.Since(decodeStart))
 

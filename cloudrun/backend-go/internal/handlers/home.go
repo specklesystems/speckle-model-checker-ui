@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 	"time"
 
@@ -17,6 +16,7 @@ func Home(c *gin.Context) {
 
 	firebaseToken := c.Query("ft")
 	if firebaseToken != "" {
+		logging.LogColor(logging.ColorYellow, "Received Firebase token in query parameter")
 		c.HTML(http.StatusOK, "firebase_token.html", gin.H{
 			"firebaseToken": firebaseToken,
 		})
@@ -24,6 +24,7 @@ func Home(c *gin.Context) {
 	}
 
 	if user == nil {
+		logging.LogColor(logging.ColorBlue, "No user found in session, showing login page")
 		c.HTML(http.StatusOK, "base", gin.H{
 			"title":   "Welcome",
 			"content": "login",
@@ -35,7 +36,8 @@ func Home(c *gin.Context) {
 	tokenStart := time.Now()
 	userToken, err := auth.GetUserToken(user.ID)
 	if err != nil || userToken == nil {
-		log.Printf("GetUserToken took: %v", time.Since(tokenStart))
+		logging.LogColor(logging.ColorRed, "Failed to get user token for user %s: %v", user.ID, err)
+		logging.LogColor(logging.ColorReset, "Getting user token took: %v", time.Since(tokenStart))
 		c.HTML(http.StatusOK, "base", gin.H{
 			"title":   "Welcome",
 			"content": "welcome",
@@ -43,12 +45,13 @@ func Home(c *gin.Context) {
 		})
 		return
 	}
-	log.Printf("GetUserToken took: %v", time.Since(tokenStart))
+	logging.LogColor(logging.ColorReset, "Getting user token took: %v", time.Since(tokenStart))
 
 	projectsStart := time.Now()
 	projects, nextCursor, err := auth.GetProjectsWithPagination(userToken.SpeckleToken, projectsPerPage, modelsPerProject, versionsPerModel, "", "")
 	if err != nil {
-		log.Printf("GetProjects took: %v", time.Since(projectsStart))
+		logging.LogColor(logging.ColorRed, "Failed to get projects for user %s: %v", user.ID, err)
+		logging.LogColor(logging.ColorReset, "Getting projects took: %v", time.Since(projectsStart))
 		c.HTML(http.StatusOK, "base", gin.H{
 			"title":   "Welcome",
 			"content": "login",
@@ -56,13 +59,11 @@ func Home(c *gin.Context) {
 		})
 		return
 	}
-	log.Printf("GetProjects took: %v", time.Since(projectsStart))
+	logging.LogColor(logging.ColorBlue, "Successfully fetched %d projects for user %s", len(projects), user.ID)
+	logging.LogColor(logging.ColorReset, "Getting projects took: %v", time.Since(projectsStart))
 
 	// Don't load previews on initial page load
 	// They will be loaded lazily via HTMX when needed
-
-	logging.LogColor(logging.ColorPurple, "Next Cursor: %v", nextCursor)
-
 	c.HTML(http.StatusOK, "base", gin.H{
 		"title":                "Projects",
 		"content":              "projects",
@@ -72,5 +73,5 @@ func Home(c *gin.Context) {
 		"next_cursor":          nextCursor,
 		"next_projects_cursor": nextCursor,
 	})
-	log.Printf("Total Home handler took: %v", time.Since(start))
+	logging.LogColor(logging.ColorReset, "Total time for Home handler: %v", time.Since(start))
 }

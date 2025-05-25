@@ -72,7 +72,11 @@ async function loadModelImages(container) {
           updateModelImage(element, imageCache.get(modelId));
         }
       } else {
-        uncachedIds.push(modelId);
+        // Only add to uncachedIds if the model has a throbber (meaning it has a preview URL)
+        const element = container.querySelector(`.model-image.throbber[data-model-id="${modelId}"]`);
+        if (element) {
+          uncachedIds.push(modelId);
+        }
       }
     });
 
