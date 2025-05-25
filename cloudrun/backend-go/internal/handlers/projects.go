@@ -338,3 +338,35 @@ func generateSignedURL(bucketName, objectName string, expiry time.Duration) (str
 		Expires:        time.Now().Add(expiry),
 	})
 }
+
+// GetProjectModels handles HTMX requests to fetch models for a single project
+func GetProjectModels(c *gin.Context) {
+	user := auth.GetCurrentUser(c)
+	if user == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userToken, err := auth.GetUserToken(user.ID)
+	if err != nil || userToken == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	projectID := c.Param("project_id")
+	project, err := auth.GetProjectDetails(userToken.SpeckleToken, projectID)
+	if err != nil || project == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
+		return
+	}
+
+	// Populate PreviewDataURI for each model in this project
+	for mi := range project.Models.Items {
+		project.Models.Items[mi].PreviewDataURI = getModelPreviewDataURI(project.Models.Items[mi].ID, userToken.SpeckleToken)
+	}
+
+	c.HTML(http.StatusOK, "models_grid", gin.H{
+		"Models":    project.Models.Items,
+		"ProjectID": projectID,
+	})
+}

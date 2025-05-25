@@ -195,6 +195,7 @@ func main() {
 	r.GET("/projects", handlers.GetProjects)
 	r.GET("/projects/search", handlers.SearchProjects)
 	r.GET("/projects/:project_id", handlers.ProjectDetails)
+	r.GET("/projects/:project_id/models", handlers.GetProjectModels)
 
 	// Add preview image endpoint
 	r.GET("/api/model-preview/:model_id", handlers.GetModelPreview)
