@@ -1,10 +1,5 @@
 package logging
 
-import (
-	"fmt"
-	"log"
-)
-
 // ANSI color codes
 const (
 	ColorReset  = "\x1b[0m"
@@ -15,9 +10,3 @@ const (
 	ColorPurple = "\x1b[35;1m"
 	ColorCyan   = "\x1b[36;1m"
 )
-
-// LogColor prints a colored log message
-func LogColor(color, format string, v ...interface{}) {
-	msg := fmt.Sprintf(format, v...)
-	log.Printf("%s%s%s", color, msg, ColorReset)
-}

@@ -17,25 +17,9 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/speckle/model-checker/internal/auth"
 	"github.com/speckle/model-checker/internal/handlers"
+	"github.com/speckle/model-checker/internal/logging"
 	"github.com/speckle/model-checker/internal/models"
 )
-
-// ANSI color codes
-const (
-	colorReset  = "\x1b[0m"
-	colorRed    = "\x1b[31;1m"
-	colorGreen  = "\x1b[32;1m"
-	colorYellow = "\x1b[33;1m"
-	colorBlue   = "\x1b[34;1m"
-	colorPurple = "\x1b[35;1m"
-	colorCyan   = "\x1b[36;1m"
-)
-
-// logColor prints a colored log message
-func logColor(color, format string, v ...interface{}) {
-	msg := fmt.Sprintf(format, v...)
-	log.Printf("%s%s%s", color, msg, colorReset)
-}
 
 func loadTemplates() *template.Template {
 	// Create a new template with a name
@@ -54,14 +38,14 @@ func loadTemplates() *template.Template {
 	})
 
 	// Load all templates at once
-	logColor(colorBlue, "Loading all templates")
+	logging.LogColor(logging.ColorBlue, "Loading all templates")
 	templates = template.Must(templates.ParseGlob("go-templates/*.html"))
 	templates = template.Must(templates.ParseGlob("go-templates/partials/*.html"))
 
 	// Debug: List all loaded templates
-	logColor(colorGreen, "Loaded templates:")
+	logging.LogColor(logging.ColorGreen, "Loaded templates:")
 	for _, tmpl := range templates.Templates() {
-		logColor(colorCyan, "  - %s", tmpl.Name())
+		logging.LogColor(logging.ColorCyan, "  - %s", tmpl.Name())
 	}
 
 	return templates
@@ -70,26 +54,26 @@ func loadTemplates() *template.Template {
 func main() {
 	// Load environment variables from parent directory
 	if err := godotenv.Load(filepath.Join("..", ".env")); err != nil {
-		logColor(colorYellow, "Warning: .env file not found: %v", err)
+		logging.LogColor(logging.ColorYellow, "Warning: .env file not found: %v", err)
 	}
 
 	// Debug: Check if session secret key is loaded
 	sessionKey := os.Getenv("SESSION_SECRET_KEY")
 	if sessionKey == "" {
-		logColor(colorRed, "SESSION_SECRET_KEY environment variable is not set")
+		logging.LogColor(logging.ColorRed, "SESSION_SECRET_KEY environment variable is not set")
 		log.Fatal("SESSION_SECRET_KEY environment variable is not set")
 	}
-	logColor(colorGreen, "Session secret key length: %d", len(sessionKey))
+	logging.LogColor(logging.ColorGreen, "Session secret key length: %d", len(sessionKey))
 
 	// Initialize Firebase
 	if err := auth.InitializeFirebase(); err != nil {
-		logColor(colorRed, "Failed to initialize Firebase: %v", err)
+		logging.LogColor(logging.ColorRed, "Failed to initialize Firebase: %v", err)
 		log.Fatalf("Failed to initialize Firebase: %v", err)
 	}
 
 	// Initialize auth package with Firestore client
 	if err := auth.InitializeFromFirebase(); err != nil {
-		logColor(colorRed, "Failed to initialize auth package: %v", err)
+		logging.LogColor(logging.ColorRed, "Failed to initialize auth package: %v", err)
 		log.Fatalf("Failed to initialize auth package: %v", err)
 	}
 
@@ -102,9 +86,9 @@ func main() {
 
 	// Add request logging middleware
 	r.Use(func(c *gin.Context) {
-		logColor(colorBlue, "Request: %s %s", c.Request.Method, c.Request.URL.Path)
+		logging.LogColor(logging.ColorBlue, "Request: %s %s", c.Request.Method, c.Request.URL.Path)
 		c.Next()
-		logColor(colorGreen, "Response: %s %s - Status: %d", c.Request.Method, c.Request.URL.Path, c.Writer.Status())
+		logging.LogColor(logging.ColorGreen, "Response: %s %s - Status: %d", c.Request.Method, c.Request.URL.Path, c.Writer.Status())
 	})
 
 	// Set up session middleware
@@ -125,12 +109,12 @@ func main() {
 		session := sessions.Default(c)
 		userID := session.Get("user_id")
 		if userID != nil {
-			logColor(colorCyan, "Session before request - User ID: %v", userID)
+			logging.LogColor(logging.ColorCyan, "Session before request - User ID: %v", userID)
 		}
 		c.Next()
 		userID = session.Get("user_id")
 		if userID != nil {
-			logColor(colorCyan, "Session after request - User ID: %v", userID)
+			logging.LogColor(logging.ColorCyan, "Session after request - User ID: %v", userID)
 		}
 	})
 
@@ -147,13 +131,13 @@ func main() {
 					Name:  userName.(string),
 					Email: userEmail.(string),
 				}
-				logColor(colorGreen, "Session middleware - Setting user in context: %+v", user)
+				logging.LogColor(logging.ColorGreen, "Session middleware - Setting user in context: %+v", user)
 				c.Set("user", user)
 			} else {
-				logColor(colorYellow, "Session middleware - Incomplete user data in session")
+				logging.LogColor(logging.ColorYellow, "Session middleware - Incomplete user data in session")
 			}
 		} else {
-			logColor(colorYellow, "Session middleware - No user found in session")
+			logging.LogColor(logging.ColorYellow, "Session middleware - No user found in session")
 		}
 		c.Next()
 	})
@@ -174,15 +158,15 @@ func main() {
 	r.Use(func(c *gin.Context) {
 		c.Next()
 		if c.Writer.Status() == http.StatusOK && c.Writer.Header().Get("Content-Type") == "text/html; charset=utf-8" {
-			logColor(colorBlue, "Rendering template for path: %s", c.Request.URL.Path)
+			logging.LogColor(logging.ColorBlue, "Rendering template for path: %s", c.Request.URL.Path)
 			if tmpl := r.HTMLRender; tmpl != nil {
-				logColor(colorCyan, "Template renderer type: %T", tmpl)
+				logging.LogColor(logging.ColorCyan, "Template renderer type: %T", tmpl)
 			}
 		}
 	})
 
 	// Static files
-	logColor(colorBlue, "Setting up static files from frontend/static")
+	logging.LogColor(logging.ColorBlue, "Setting up static files from frontend/static")
 	r.Static("/static", "./go-templates/static")
 
 	// Auth routes
@@ -193,7 +177,7 @@ func main() {
 	// Main routes
 	r.GET("/", handlers.Home)
 	r.GET("/debug", func(c *gin.Context) {
-		logColor(colorBlue, "Debug route called")
+		logging.LogColor(logging.ColorBlue, "Debug route called")
 		c.HTML(http.StatusOK, "base", gin.H{
 			"title":       "Debug",
 			"user":        nil,
@@ -241,9 +225,9 @@ func main() {
 	if port == "" {
 		port = "8000"
 	}
-	logColor(colorGreen, "Starting server on port %s", port)
+	logging.LogColor(logging.ColorGreen, "Starting server on port %s", port)
 	if err := r.Run(":" + port); err != nil {
-		logColor(colorRed, "Failed to start server: %v", err)
+		logging.LogColor(logging.ColorRed, "Failed to start server: %v", err)
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }
