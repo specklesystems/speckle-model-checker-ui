@@ -166,27 +166,15 @@ func ExchangeToken(c *gin.Context) {
 		return
 	}
 
-	// Set user in session
-	log.Printf("Attempting to save user data to session: ID=%s, Name=%s, Email=%s", user.ID, user.Name, user.Email)
+	// Set user data in session
 	session.Set("user_id", user.ID)
 	session.Set("user_name", user.Name)
 	session.Set("user_email", user.Email)
 	if err := session.Save(); err != nil {
 		log.Printf("Failed to save session: %v", err)
-		log.Printf("Session data that failed to save: ID=%s, Name=%s, Email=%s", user.ID, user.Name, user.Email)
-		c.HTML(http.StatusInternalServerError, "base", gin.H{
-			"title":   "Error",
-			"content": "error",
-			"error":   "Failed to save session",
-		})
-		return
 	}
 
-	// Debug: Log session state
-	log.Printf("Session after login - User ID: %s, Name: %s", user.ID, user.Name)
-
-	// Redirect to projects page after successful login
-	c.Redirect(http.StatusFound, "/projects")
+	c.Redirect(http.StatusFound, "/")
 }
 
 // generateChallengeID generates a random challenge ID

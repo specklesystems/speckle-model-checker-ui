@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"log"
@@ -43,6 +44,13 @@ func loadTemplates() *template.Template {
 	// Add custom template functions
 	templates.Funcs(template.FuncMap{
 		"lower": strings.ToLower,
+		"json": func(v interface{}) (string, error) {
+			b, err := json.Marshal(v)
+			if err != nil {
+				return "", err
+			}
+			return string(b), nil
+		},
 	})
 
 	// Load all templates at once
@@ -199,6 +207,7 @@ func main() {
 
 	// Add preview image endpoint
 	r.GET("/api/model-preview/:model_id", handlers.GetModelPreview)
+	r.POST("/api/models/images", handlers.GetModelImages)
 
 	// Ruleset routes
 	r.GET("/rulesets", handlers.ListRulesets)

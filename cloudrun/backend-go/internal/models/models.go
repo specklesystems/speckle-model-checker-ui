@@ -31,6 +31,7 @@ type Project struct {
 		Cursor     string  `json:"cursor"`
 		Items      []Model `json:"items"`
 	} `json:"models"`
+	ModelIDs []string `json:"-"` // Model IDs for lazy loading
 }
 
 // Model represents a Speckle model

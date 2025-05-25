@@ -3,23 +3,19 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/speckle/model-checker/internal/auth"
-	"github.com/speckle/model-checker/internal/logging"
 )
 
 // Home handles the home page
 func Home(c *gin.Context) {
-	log.Printf("Home handler called - Path: %s, Method: %s", c.Request.URL.Path, c.Request.Method)
-
-	// Get current user through auth package
+	start := time.Now()
 	user := auth.GetCurrentUser(c)
-	log.Printf("Home handler - User type: %T, value: %+v", user, user)
 
 	firebaseToken := c.Query("ft")
 	if firebaseToken != "" {
-		log.Printf("Firebase token present, rendering firebase_token.html")
 		c.HTML(http.StatusOK, "firebase_token.html", gin.H{
 			"firebaseToken": firebaseToken,
 		})
@@ -27,7 +23,6 @@ func Home(c *gin.Context) {
 	}
 
 	if user == nil {
-		log.Printf("No user found, rendering base template with login content")
 		c.HTML(http.StatusOK, "base", gin.H{
 			"title":   "Welcome",
 			"content": "login",
@@ -36,10 +31,10 @@ func Home(c *gin.Context) {
 		return
 	}
 
-	// Get user's Speckle token from Firestore
+	tokenStart := time.Now()
 	userToken, err := auth.GetUserToken(user.ID)
 	if err != nil || userToken == nil {
-		log.Printf("Failed to get user token: %v", err)
+		log.Printf("GetUserToken took: %v", time.Since(tokenStart))
 		c.HTML(http.StatusOK, "base", gin.H{
 			"title":   "Welcome",
 			"content": "welcome",
@@ -47,11 +42,12 @@ func Home(c *gin.Context) {
 		})
 		return
 	}
+	log.Printf("GetUserToken took: %v", time.Since(tokenStart))
 
-	// Fetch projects from Speckle
+	projectsStart := time.Now()
 	projects, _, err := auth.GetProjects(userToken.SpeckleToken)
 	if err != nil {
-		log.Printf("Failed to fetch projects: %v", err)
+		log.Printf("GetProjects took: %v", time.Since(projectsStart))
 		c.HTML(http.StatusOK, "base", gin.H{
 			"title":   "Welcome",
 			"content": "login",
@@ -59,21 +55,16 @@ func Home(c *gin.Context) {
 		})
 		return
 	}
-	logging.LogColor(logging.ColorRed, "Projects: %+v", projects)
+	log.Printf("GetProjects took: %v", time.Since(projectsStart))
 
-	// Populate PreviewDataURI for each model
-	for pi := range projects {
-		for mi := range projects[pi].Models.Items {
-			projects[pi].Models.Items[mi].PreviewDataURI = getModelPreviewDataURI(projects[pi].Models.Items[mi].ID, userToken.SpeckleToken)
-		}
-	}
+	// Don't load previews on initial page load
+	// They will be loaded lazily via HTMX when needed
 
-	// For logged-in users with projects, render the base template with projects
-	logging.LogColor(logging.ColorRed, "Rendering base template with projects content")
 	c.HTML(http.StatusOK, "base", gin.H{
 		"title":    "Projects",
 		"content":  "projects",
 		"user":     user,
 		"projects": projects,
 	})
+	log.Printf("Total Home handler took: %v", time.Since(start))
 }
