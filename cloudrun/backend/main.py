@@ -94,7 +94,12 @@ app = FastAPI()
 
 # Add session middleware
 app.add_middleware(
-    SessionMiddleware, secret_key=os.getenv("SESSION_SECRET_KEY", "your-secret-key")
+    SessionMiddleware,
+    secret_key=os.getenv("SESSION_SECRET_KEY", "your-secret-key"),
+    session_cookie="speckle_session",
+    max_age=3600,  # 1 hour
+    same_site="lax",
+    https_only=True,
 )
 
 # Templates
