@@ -60,6 +60,6 @@
   "forwardPorts": [
     8000
   ],
-  "postCreateCommand": "pip install --upgrade pip && pip install -r ./cloudrun/backend/requirements.txt --no-warn-script-location && cp ./.devcontainer/cloudrun/zshrc.cloudrun /home/vscode/.zshrc && echo 'source ~/.zshrc' >> /home/vscode/.zshenv",
+  "postCreateCommand": "pip install --upgrade pip && pip install -r ./cloudrun/backend/requirements.txt --no-warn-script-location && cp ./.devcontainer/cloudrun/zshrc.cloudrun /home/vscode/.zshrc",
   "remoteUser": "vscode"
 }

@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && echo "deb https://packages.cloud.google.com/apt cloud-sdk main" \
   > /etc/apt/sources.list.d/google-cloud-sdk.list
 
-
 # Install the SDK
 RUN apt-get update && apt-get install -y google-cloud-sdk
 
@@ -21,6 +20,8 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
   git \
   nodejs \
   npm \
+  zsh \
+  dos2unix \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
@@ -42,17 +43,13 @@ RUN groupadd --gid $USER_GID $USERNAME \
 # Set up the working directory
 WORKDIR /workspace
 
-# Install Zsh and Oh My Zsh for the non-root user
-RUN apt-get update && apt-get install -y zsh git curl exa \
-  && usermod --shell /usr/bin/zsh vscode \
-  && runuser -l vscode -c \
-  'sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended'
+# Install Oh My Zsh and set up custom configuration
+RUN git clone https://github.com/ohmyzsh/ohmyzsh.git /home/$USERNAME/.oh-my-zsh \
+  && chown -R $USERNAME:$USERNAME /home/$USERNAME/.oh-my-zsh \
+  && chsh -s /usr/bin/zsh $USERNAME
 
 # Switch to non-root user
 USER $USERNAME
-
-# Set zsh as default shell explicitly for vscode user
-RUN sudo chsh -s /usr/bin/zsh vscode
 
 # Add uv to PATH
 ENV PATH="/home/$USERNAME/.cargo/bin:${PATH}"
@@ -60,4 +57,4 @@ ENV PATH="/home/$USERNAME/.cargo/bin:${PATH}"
 RUN pip install --upgrade pip
 
 # Set up the default shell
-SHELL ["/bin/bash", "-c"] 
+SHELL ["/bin/zsh", "-c"] 
