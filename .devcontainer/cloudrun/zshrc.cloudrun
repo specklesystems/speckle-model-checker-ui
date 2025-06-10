@@ -13,6 +13,6 @@ alias synczsh='cp /workspace/.devcontainer/cloudrun/zshrc.cloudrun ~/.zshrc && s
 alias ls='exa --icons'
 
 alias run='python backend/run.py'
-
+alias dev='uvicorn main:app --reload'
 
 source $ZSH/oh-my-zsh.sh
