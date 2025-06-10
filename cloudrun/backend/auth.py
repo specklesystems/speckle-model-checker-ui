@@ -47,7 +47,9 @@ bucket = storage.bucket()
 
 
 async def init_auth(request: Request):
-    print("Initializing Speckle authentication...")
+    print("=== Starting init_auth function ===")
+    print("Request headers:", dict(request.headers))
+    print("Request cookies:", request.cookies)
 
     """Initialize Speckle authentication"""
     app_id = os.getenv("SPECKLE_APP_ID")
@@ -66,8 +68,11 @@ async def init_auth(request: Request):
     # Generate challenge ID and store in session
     challenge_id = secrets.token_urlsafe(32)
     request.session["speckle_challenge_id"] = challenge_id
+    print(f"Generated challenge ID: {challenge_id}")
+    print(f"Session after setting challenge: {request.session}")
 
     auth_url = f"{server_url}/authn/verify/{app_id}/{challenge_id}"
+    print(f"Generated auth URL: {auth_url}")
 
     return JSONResponse(
         {
@@ -143,6 +148,9 @@ async def handle_avatar_url(avatar_url: str, storage_bucket=None) -> tuple[str, 
 async def exchange_token(request: Request):
     """Exchange token - using session for challenge ID"""
     print("=== Starting exchange_token function ===")
+    print("Request headers:", dict(request.headers))
+    print("Request cookies:", request.cookies)
+    print("Session contents:", request.session)
 
     access_code = request.query_params.get("access_code")
     challenge_id = request.session.pop("speckle_challenge_id", None)
@@ -154,6 +162,8 @@ async def exchange_token(request: Request):
 
     if not access_code or not challenge_id:
         print("Error: Missing access code or challenge ID")
+        print("Access code present:", bool(access_code))
+        print("Challenge ID present:", bool(challenge_id))
         raise HTTPException(
             status_code=400, detail="Missing access code or challenge ID"
         )
