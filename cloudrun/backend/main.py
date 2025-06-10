@@ -1345,18 +1345,69 @@ async def update_project_ruleset(request: Request, project_id: str, ruleset_id: 
 
     # Get form data
     form_data = await request.form()
+    name = form_data.get("name")
+    description = form_data.get("description")
 
     # Update the ruleset
-    update_data = {
-        "name": form_data.get("name"),
-        "description": form_data.get("description", ""),
-        "updated_at": datetime.utcnow(),
-    }
-
-    # Update the ruleset
+    update_data = {}
+    if name is not None:
+        update_data["name"] = name
+    if description is not None:
+        update_data["description"] = description
+    update_data["updated_at"] = datetime.utcnow()
     ruleset_ref.update(update_data)
 
-    # Redirect back to the project page
+    # Update local ruleset_data for rendering
+    if name is not None:
+        ruleset_data["name"] = name
+    if description is not None:
+        ruleset_data["description"] = description
+
+    # If it's an HTMX request, always return the correct field container partial
+    if request.headers.get("HX-Request"):
+        hx_target = request.headers.get("HX-Target")
+        # Prefer hx-target, fallback to form fields
+        if hx_target == "name-field-container" or (
+            name is not None and (description is None or hx_target is None)
+        ):
+            return templates.TemplateResponse(
+                "partials/ruleset_form_content.html",
+                {
+                    "request": request,
+                    "ruleset": ruleset_data,
+                    "user": user,
+                    "project": {"id": project_id},
+                    "is_edit": True,
+                    "only_field": "name",
+                },
+            )
+        elif hx_target == "desc-field-container" or (
+            description is not None and (name is None or hx_target is None)
+        ):
+            return templates.TemplateResponse(
+                "partials/ruleset_form_content.html",
+                {
+                    "request": request,
+                    "ruleset": ruleset_data,
+                    "user": user,
+                    "project": {"id": project_id},
+                    "is_edit": True,
+                    "only_field": "description",
+                },
+            )
+        # fallback: return the full form if target is ambiguous
+        return templates.TemplateResponse(
+            "partials/ruleset_form_content.html",
+            {
+                "request": request,
+                "ruleset": ruleset_data,
+                "user": user,
+                "project": {"id": project_id},
+                "is_edit": True,
+            },
+        )
+
+    # Otherwise redirect back to the project page
     return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
 
 
