@@ -16,6 +16,12 @@ endblock %} {% block content %}
         </h1>
       </div>
       <div class="flex space-x-3">
+        <a
+          href="/projects/{{ project.id }}/new"
+          class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark transition-colors font-medium"
+        >
+          Create New Ruleset
+        </a>
         <button
           type="button"
           onclick="document.getElementById('import-tsv-modal').classList.remove('hidden')"
