@@ -1,7 +1,7 @@
 # container-specific Oh My Zsh settings
 export ZSH="$HOME/.oh-my-zsh"
 
-ZSH_THEME="agnoster"
+ZSH_THEME="robbyrussell"
 plugins=(git)
 
 zstyle ':omz:update' mode auto
@@ -13,6 +13,6 @@ alias synczsh='cp /workspace/.devcontainer/cloudrun/zshrc.cloudrun ~/.zshrc && s
 alias ls='exa --icons'
 
 alias run='python backend/run.py'
-
+alias dev='uvicorn main:app --reload'
 
 source $ZSH/oh-my-zsh.sh

@@ -7,6 +7,12 @@
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script>
+      // Configure HTMX to use HTTPS
+      htmx.config.forceHTTPS = true;
+      // Set base URL to ensure all requests use HTTPS
+      htmx.config.baseURL = window.location.origin;
+    </script>
     <link rel="stylesheet" href="/static/styles.css" />
     <script>
       tailwind.config = {
@@ -280,5 +286,6 @@
     </script>
 
     {% block scripts %}{% endblock %}
+    <script src="/static/rulesets.js"></script>
   </body>
 </html>

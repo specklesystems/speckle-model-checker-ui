@@ -1,42 +1,303 @@
+{% if only_field == 'name' %}
+<div class="relative" id="name-field-container">
+  <label for="name" class="block text-sm font-medium text-gray-700"
+    >Rule Set Name</label
+  >
+  <input
+    type="text"
+    name="name"
+    id="name"
+    required
+    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm w-full px-3 py-2 border border-gray-300 rounded-md text-sm pr-16"
+    value="{{ ruleset.name if ruleset else '' }}"
+    placeholder="Enter a name for your rule set"
+  />
+  <div
+    id="name-actions"
+    class="absolute top-7 right-0 flex items-center pr-2 space-x-1"
+    style="display: none"
+  >
+    <button
+      type="button"
+      id="cancel-name-btn"
+      tabindex="-1"
+      class="p-1 rounded hover:bg-gray-100"
+      aria-label="Cancel"
+    >
+      <svg
+        class="w-5 h-5 text-gray-400 hover:text-red-500"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M6 18L18 6M6 6l12 12"
+        />
+      </svg>
+    </button>
+    <button
+      type="submit"
+      name="save_name"
+      id="save-name-btn"
+      hx-post="/projects/{{ project.id }}/rulesets/{{ ruleset.id }}"
+      hx-include="#name"
+      hx-target="#name-field-container"
+      hx-swap="outerHTML"
+      class="p-1 rounded hover:bg-gray-100"
+      aria-label="Save"
+    >
+      <svg
+        class="w-5 h-5 text-gray-400 hover:text-green-500"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M5 13l4 4L19 7"
+        />
+      </svg>
+    </button>
+  </div>
+</div>
+{% elif only_field == 'description' %}
+<div class="relative mt-6" id="desc-field-container">
+  <label for="description" class="block text-sm font-medium text-gray-700"
+    >Description (Optional)</label
+  >
+  <textarea
+    name="description"
+    id="description"
+    rows="3"
+    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm w-full px-3 py-2 border border-gray-300 rounded-md text-sm pr-16"
+    placeholder="Describe what this rule set checks for"
+  >
+{{ ruleset.description if ruleset else '' }}</textarea
+  >
+  <div
+    id="desc-actions"
+    class="absolute top-7 right-0 flex items-center pr-2 space-x-1"
+    style="display: none"
+  >
+    <button
+      type="button"
+      id="cancel-desc-btn"
+      tabindex="-1"
+      class="p-1 rounded hover:bg-gray-100"
+      aria-label="Cancel"
+    >
+      <svg
+        class="w-5 h-5 text-gray-400 hover:text-red-500"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M6 18L18 6M6 6l12 12"
+        />
+      </svg>
+    </button>
+    <button
+      type="submit"
+      name="save_desc"
+      id="save-desc-btn"
+      hx-post="/projects/{{ project.id }}/rulesets/{{ ruleset.id }}"
+      hx-include="#description"
+      hx-target="#desc-field-container"
+      hx-swap="outerHTML"
+      class="p-1 rounded hover:bg-gray-100"
+      aria-label="Save"
+    >
+      <svg
+        class="w-5 h-5 text-gray-400 hover:text-green-500"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M5 13l4 4L19 7"
+        />
+      </svg>
+    </button>
+  </div>
+</div>
+{% else %}
 <div id="form-container">
-  <form id="ruleset-form"
+  <form
+    id="ruleset-form"
     hx-post="{% if is_edit %}/projects/{{ project.id }}/rulesets/{{ ruleset.id }}{% else %}/projects/{{ project.id }}/rulesets{% endif %}"
-    hx-target="body" hx-push-url="/projects/{{ project.id }}" hx-indicator=".htmx-indicator">
+    hx-indicator=".htmx-indicator"
+  >
     <div class="space-y-6">
-      <!-- Ruleset Name -->
-      <div>
-        <label for="name" class="block text-sm font-medium text-gray-700">Rule Set Name</label>
-        <input type="text" name="name" id="name" required
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-          value="{{ ruleset.name if ruleset else '' }}" placeholder="Enter a name for your rule set" {% if not is_edit
-          %} hx-post="/projects/{{ project.id }}/rulesets" hx-trigger="blur once" hx-target="#form-container"
-          hx-swap="outerHTML" hx-headers='{"X-Event-Type": "blur"}' {% endif %}>
+      <div class="relative" id="name-field-container">
+        <label for="name" class="block text-sm font-medium text-gray-700"
+          >Rule Set Name</label
+        >
+        <input
+          type="text"
+          name="name"
+          id="name"
+          required
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm w-full px-3 py-2 border border-gray-300 rounded-md text-sm pr-16"
+          value="{{ ruleset.name if ruleset else '' }}"
+          placeholder="Enter a name for your rule set"
+        />
+        <div
+          id="name-actions"
+          class="absolute top-7 right-0 flex items-center pr-2 space-x-1"
+          style="display: none"
+        >
+          <button
+            type="button"
+            id="cancel-name-btn"
+            tabindex="-1"
+            class="p-1 rounded hover:bg-gray-100"
+            aria-label="Cancel"
+          >
+            <svg
+              class="w-5 h-5 text-gray-400 hover:text-red-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+          <button
+            type="submit"
+            name="save_name"
+            id="save-name-btn"
+            hx-post="/projects/{{ project.id }}/rulesets/{{ ruleset.id }}"
+            hx-include="#name"
+            hx-target="#name-field-container"
+            hx-swap="outerHTML"
+            class="p-1 rounded hover:bg-gray-100"
+            aria-label="Save"
+          >
+            <svg
+              class="w-5 h-5 text-gray-400 hover:text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
-
-      <!-- Description -->
-      <div>
-        <label for="description" class="block text-sm font-medium text-gray-700">Description (Optional)</label>
-        <textarea name="description" id="description" rows="3"
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-          placeholder="Describe what this rule set checks for">{{ ruleset.description if ruleset else '' }}</textarea>
+      <div class="relative mt-6" id="desc-field-container">
+        <label for="description" class="block text-sm font-medium text-gray-700"
+          >Description (Optional)</label
+        >
+        <textarea
+          name="description"
+          id="description"
+          rows="3"
+          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm w-full px-3 py-2 border border-gray-300 rounded-md text-sm pr-16"
+          placeholder="Describe what this rule set checks for"
+        >
+{{ ruleset.description if ruleset else '' }}</textarea
+        >
+        <div
+          id="desc-actions"
+          class="absolute top-7 right-0 flex items-center pr-2 space-x-1"
+          style="display: none"
+        >
+          <button
+            type="button"
+            id="cancel-desc-btn"
+            tabindex="-1"
+            class="p-1 rounded hover:bg-gray-100"
+            aria-label="Cancel"
+          >
+            <svg
+              class="w-5 h-5 text-gray-400 hover:text-red-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+          <button
+            type="submit"
+            name="save_desc"
+            id="save-desc-btn"
+            hx-post="/projects/{{ project.id }}/rulesets/{{ ruleset.id }}"
+            hx-include="#description"
+            hx-target="#desc-field-container"
+            hx-swap="outerHTML"
+            class="p-1 rounded hover:bg-gray-100"
+            aria-label="Save"
+          >
+            <svg
+              class="w-5 h-5 text-gray-400 hover:text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </button>
+        </div>
       </div>
-
       <!-- Form Actions -->
-      <div class="flex justify-end">
-        {% if is_edit %}
-        <button type="submit"
-          class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+      <div
+        class="flex justify-end"
+        id="ruleset-form-actions"
+        style="display: none"
+      >
+        <button
+          type="button"
+          id="cancel-ruleset-btn"
+          class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary mr-2"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          id="save-ruleset-btn"
+          class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+        >
           Save Changes
         </button>
-        {% endif %}
       </div>
     </div>
   </form>
-
   <!-- Rules Section and Add Rule Form (outside the ruleset form) -->
   {% if is_edit %}
-  <div id="ruleset-rules">
-    {% include "partials/ruleset_rules.html" with context %}
-  </div>
+  <div>{% include "partials/ruleset_rules.html" with context %}</div>
   {% endif %}
 </div>
+{% endif %}
