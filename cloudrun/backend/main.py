@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from firebase_admin import firestore
 from services.tsv_service import generate_ruleset_tsv
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 # Load environment variables
@@ -92,14 +93,20 @@ db = firestore.client()
 
 app = FastAPI()
 
+
+# Trust the X-Forwarded-Proto header from Cloud Run's proxy
+class ProxyHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        if "x-forwarded-proto" in request.headers:
+            request.scope["scheme"] = request.headers["x-forwarded-proto"]
+        return await call_next(request)
+
+
+app.add_middleware(ProxyHeadersMiddleware)
+
 # Add session middleware
 app.add_middleware(
-    SessionMiddleware,
-    secret_key=os.getenv("SESSION_SECRET_KEY", "your-secret-key"),
-    session_cookie="speckle_session",
-    max_age=3600,  # 1 hour
-    same_site="lax",
-    https_only=True,
+    SessionMiddleware, secret_key=os.getenv("SESSION_SECRET_KEY", "your-secret-key")
 )
 
 # Templates
