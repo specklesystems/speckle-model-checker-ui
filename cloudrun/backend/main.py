@@ -1104,6 +1104,14 @@ async def create_project_ruleset(request: Request, project_id: str):
             },
         )
 
+    # If it's a regular HTMX request (save button), use HTMX redirect
+    if request.headers.get("HX-Request"):
+        response = HTMLResponse("")
+        response.headers["HX-Redirect"] = (
+            f"/projects/{project_id}/rulesets/{ruleset_id}"
+        )
+        return response
+
     # Otherwise redirect to the project page
     return RedirectResponse(url=f"/projects/{project_id}", status_code=303)
 
